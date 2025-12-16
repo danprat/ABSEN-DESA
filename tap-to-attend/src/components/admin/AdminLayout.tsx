@@ -1,0 +1,240 @@
+import { useState, useEffect } from 'react';
+import { Outlet, useLocation, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  LayoutDashboard, 
+  Users, 
+  CalendarCheck, 
+  History, 
+  Settings, 
+  FileText,
+  Menu,
+  X,
+  LogOut,
+  Home
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { appConfig } from '@/data/mockData';
+
+const navItems = [
+  { path: '/admin', icon: LayoutDashboard, label: 'Beranda', exact: true },
+  { path: '/admin/pegawai', icon: Users, label: 'Pegawai' },
+  { path: '/admin/absensi', icon: CalendarCheck, label: 'Absensi Harian' },
+  { path: '/admin/riwayat', icon: History, label: 'Riwayat & Laporan' },
+  { path: '/admin/pengaturan', icon: Settings, label: 'Pengaturan' },
+  { path: '/admin/log', icon: FileText, label: 'Log Aktivitas' },
+];
+
+export function AdminLayout() {
+  const location = useLocation();
+  const { logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+      else setSidebarOpen(false);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [location.pathname, isMobile]);
+
+  const isActive = (path: string, exact?: boolean) => {
+    if (exact) return location.pathname === path;
+    return location.pathname.startsWith(path);
+  };
+
+  return (
+    <div className="min-h-screen flex bg-secondary/30">
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isMobile && sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar */}
+      <motion.aside
+        initial={false}
+        animate={{ 
+          width: isMobile ? 260 : (sidebarOpen ? 260 : 72),
+          x: isMobile ? (sidebarOpen ? 0 : -260) : 0
+        }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        className={`bg-background border-r border-border flex flex-col shrink-0 ${
+          isMobile ? 'fixed inset-y-0 left-0 z-50' : ''
+        }`}
+      >
+        {/* Header */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-border">
+          <AnimatePresence mode="wait">
+            {(sidebarOpen || isMobile) && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col"
+              >
+                <span className="font-semibold text-foreground text-sm md:text-base">{appConfig.villageName}</span>
+                <span className="text-xs text-muted-foreground">Admin Panel</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          )}
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
+            const active = isActive(item.path, item.exact);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                  active 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                <item.icon className="w-5 h-5 shrink-0" />
+                <AnimatePresence mode="wait">
+                  {(sidebarOpen || isMobile) && (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      exit={{ opacity: 0, width: 0 }}
+                      className="font-medium whitespace-nowrap overflow-hidden text-sm"
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="p-2 border-t border-border space-y-1">
+          <Link
+            to="/"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+          >
+            <Home className="w-5 h-5 shrink-0" />
+            <AnimatePresence mode="wait">
+              {(sidebarOpen || isMobile) && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="font-medium whitespace-nowrap overflow-hidden text-sm"
+                >
+                  Ke Mesin Absensi
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </Link>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            <AnimatePresence mode="wait">
+              {(sidebarOpen || isMobile) && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="font-medium whitespace-nowrap overflow-hidden text-sm"
+                >
+                  Keluar
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
+        </div>
+      </motion.aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-auto flex flex-col min-w-0">
+        {/* Mobile Header */}
+        {isMobile && (
+          <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border h-14 flex items-center px-4 gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+            <span className="font-semibold text-foreground text-sm truncate">{appConfig.villageName}</span>
+          </header>
+        )}
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="p-4 md:p-6 flex-1 pb-16"
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      {/* Fixed Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border py-2 px-4 z-50">
+        <p className="text-[10px] md:text-xs text-muted-foreground text-center">
+          Dibuat oleh <span className="font-medium text-foreground">Dany Pratmanto</span> · 
+          <a 
+            href="https://wa.me/628974041777" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="ml-1 text-primary hover:underline"
+          >
+            WA 0897 4041 777
+          </a>
+        </p>
+      </footer>
+    </div>
+  );
+}

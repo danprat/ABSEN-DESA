@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import time
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -38,14 +39,22 @@ def update_settings(
     if not settings:
         settings = WorkSettings()
         db.add(settings)
-    
+
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(settings, field, value)
-    
+
     db.commit()
     db.refresh(settings)
-    
+
+    # Convert time objects to strings for JSON serialization in audit log
+    audit_details = {}
+    for key, value in update_data.items():
+        if isinstance(value, time):
+            audit_details[key] = value.strftime("%H:%M:%S")
+        else:
+            audit_details[key] = value
+
     log_audit(
         db=db,
         action=AuditAction.UPDATE,
@@ -53,9 +62,9 @@ def update_settings(
         entity_id=settings.id,
         description="Mengupdate pengaturan kantor",
         performed_by=admin.name,
-        details=update_data
+        details=audit_details
     )
-    
+
     return settings
 
 

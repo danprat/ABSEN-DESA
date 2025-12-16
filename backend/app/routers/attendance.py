@@ -14,11 +14,12 @@ router = APIRouter(prefix="/attendance", tags=["Attendance - Tablet"])
 
 
 @router.post("/recognize", response_model=AttendanceRecognizeResponse)
-async def recognize_and_attend(
+async def recognize_face_only(
     file: UploadFile = File(None),
     image_base64: str = Form(None),
     db: Session = Depends(get_db)
 ):
+    """Recognize face WITHOUT saving attendance - requires user confirmation"""
     if file:
         image_data = await file.read()
     elif image_base64:
@@ -36,29 +37,82 @@ async def recognize_and_attend(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Gambar diperlukan (file atau base64)"
         )
-    
+
     if not face_recognition_service.detect_face(image_data):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Wajah tidak terdeteksi"
         )
-    
+
     employee, confidence = face_recognition_service.find_matching_employee(image_data, db)
-    
+
     if not employee:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Wajah tidak dikenali"
         )
-    
-    attendance, message = attendance_service.process_attendance(db, employee, confidence)
-    
+
+    # Validate attendance eligibility without saving
+    from datetime import datetime, time
+    now = datetime.now()
+    settings = attendance_service.get_work_settings(db)
+    mode = attendance_service.get_attendance_mode(now.time(), settings)
+
+    if mode is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Di luar jam absensi ({settings.check_in_start.strftime('%H:%M')}-{time(23, 59).strftime('%H:%M')})"
+        )
+
+    if attendance_service.is_weekend(now.date()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Hari ini adalah akhir pekan"
+        )
+
+    if attendance_service.is_holiday(db, now.date()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Hari ini adalah hari libur"
+        )
+
+    # Return employee data without saving
+    return AttendanceRecognizeResponse(
+        employee={
+            "id": employee.id,
+            "name": employee.name,
+            "position": employee.position,
+            "photo": employee.photo_url
+        },
+        attendance=None,  # No attendance saved yet
+        message="Wajah dikenali. Klik 'Hadir' untuk konfirmasi absensi.",
+        confidence=round(confidence * 100, 1)
+    )
+
+
+@router.post("/confirm")
+def confirm_attendance(
+    employee_id: int = Form(...),
+    confidence: float = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Confirm and save attendance after user clicks 'Hadir' button"""
+    employee = db.query(Employee).filter(Employee.id == employee_id).first()
+
+    if not employee:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee tidak ditemukan"
+        )
+
+    attendance, message = attendance_service.process_attendance(db, employee, confidence / 100)
+
     if not attendance:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=message
         )
-    
+
     return AttendanceRecognizeResponse(
         employee={
             "id": employee.id,
@@ -73,7 +127,7 @@ async def recognize_and_attend(
             "check_out_at": attendance.check_out_at.isoformat() if attendance.check_out_at else None
         },
         message=message,
-        confidence=round(confidence * 100, 1)
+        confidence=round(confidence, 1)
     )
 
 

@@ -67,4 +67,4 @@ build/
 dist/
 
 # Submodules (if tap-to-attend should be included as submodule)
-tap-to-attend/
+# tap-to-attend/

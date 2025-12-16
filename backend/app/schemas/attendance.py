@@ -6,7 +6,7 @@ from app.models.attendance import AttendanceStatus
 
 class AttendanceRecognizeResponse(BaseModel):
     employee: dict
-    attendance: dict
+    attendance: Optional[dict]  # Optional: None when just recognizing, filled after confirmation
     message: str
     confidence: float
 

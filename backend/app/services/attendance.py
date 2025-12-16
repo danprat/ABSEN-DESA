@@ -25,14 +25,16 @@ class AttendanceService:
     def is_weekend(self, check_date: date) -> bool:
         return check_date.weekday() in [5, 6]
     
-    def get_attendance_mode(self, current_time: time) -> Optional[str]:
-        check_in_start = time(6, 0)
-        check_in_end = time(12, 0)
-        check_out_end = time(22, 0)
-        
+    def get_attendance_mode(self, current_time: time, settings: WorkSettings) -> Optional[str]:
+        check_in_start = settings.check_in_start
+        check_in_end = settings.check_in_end
+        check_out_start = settings.check_out_start
+        # Set check_out_end to 23:59:59 (end of day)
+        check_out_end = time(23, 59, 59)
+
         if check_in_start <= current_time < check_in_end:
             return "CHECK_IN"
-        elif check_in_end <= current_time <= check_out_end:
+        elif check_out_start <= current_time <= check_out_end:
             return "CHECK_OUT"
         return None
     
@@ -60,12 +62,12 @@ class AttendanceService:
         
         if self.is_holiday(db, today):
             return None, "Hari ini adalah hari libur"
-        
-        mode = self.get_attendance_mode(current_time)
-        if mode is None:
-            return None, "Di luar jam absensi (06:00-22:00)"
-        
+
         settings = self.get_work_settings(db)
+        mode = self.get_attendance_mode(current_time, settings)
+        if mode is None:
+            return None, f"Di luar jam absensi ({settings.check_in_start.strftime('%H:%M')}-{time(23, 59).strftime('%H:%M')})"
+
         attendance = self.get_today_attendance(db, employee.id)
         
         if mode == "CHECK_IN":

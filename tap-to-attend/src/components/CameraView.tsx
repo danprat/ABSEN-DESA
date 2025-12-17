@@ -4,17 +4,31 @@ import { Camera, CameraOff, CheckCircle2 } from 'lucide-react';
 import { Employee } from '@/types/attendance';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import {
+  initializeFaceDetector,
+  detectFaces,
+  updateStabilityTracker,
+  drawFaceOverlay,
+  isWebAssemblySupported,
+  type FaceStability,
+  type BoundingBox
+} from '@/lib/faceDetection';
+import type { FaceDetector } from '@mediapipe/tasks-vision';
 
 interface CameraViewProps {
   onCapture: (employee: Employee, confidence: number) => void;
   isPaused?: boolean;
 }
 
-const AUTO_CAPTURE_DELAY = 2500;
-const FACE_DETECTION_INTERVAL = 500;
+// Optimized constants for faster detection
+const AUTO_CAPTURE_DELAY = 1000;  // Reduced from 2500ms to 1 second
+const FACE_DETECTION_INTERVAL = 33;  // ~30 FPS, reduced from 500ms
+const MIN_FACE_CONFIDENCE = 0.5;
+const STABILITY_FRAMES_REQUIRED = 5;
 
 export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -23,6 +37,17 @@ export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
   const [countdown, setCountdown] = useState<number | null>(null);
   const faceDetectedTimeRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // MediaPipe face detection state
+  const [faceDetector, setFaceDetector] = useState<FaceDetector | null>(null);
+  const [detectorLoading, setDetectorLoading] = useState(true);
+  const [detectorError, setDetectorError] = useState<string | null>(null);
+  const [faceStability, setFaceStability] = useState<FaceStability>({
+    detectionCount: 0,
+    lastPosition: null,
+    isStable: false,
+  });
+  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const startCamera = useCallback(async () => {
     try {
@@ -60,6 +85,32 @@ export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
         clearInterval(countdownIntervalRef.current);
       }
     };
+  }, []);
+
+  // Initialize MediaPipe FaceDetector
+  useEffect(() => {
+    const initDetector = async () => {
+      try {
+        // Check WebAssembly support
+        if (!isWebAssemblySupported()) {
+          setDetectorError('Browser tidak mendukung WebAssembly. Gunakan browser modern.');
+          setDetectorLoading(false);
+          return;
+        }
+
+        setDetectorLoading(true);
+        const detector = await initializeFaceDetector();
+        setFaceDetector(detector);
+        setDetectorLoading(false);
+        setDetectorError(null);
+      } catch (error) {
+        console.error('Failed to initialize face detector:', error);
+        setDetectorError('Gagal memuat deteksi wajah. Refresh halaman untuk mencoba lagi.');
+        setDetectorLoading(false);
+      }
+    };
+
+    initDetector();
   }, []);
 
   const captureImageAsBase64 = useCallback((): string | null => {
@@ -141,50 +192,113 @@ export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
     }
   }, [isPaused]);
 
+  // Real-time MediaPipe face detection
   useEffect(() => {
-    if (!cameraReady || scanning || isPaused) return;
+    if (!cameraReady || scanning || isPaused || !faceDetector || detectorLoading) return;
 
-    const interval = setInterval(() => {
-      const detected = Math.random() > 0.15;
-      setFaceDetected(detected);
+    const runDetection = async () => {
+      if (!videoRef.current || !canvasRef.current) return;
 
-      if (detected) {
-        if (!faceDetectedTimeRef.current) {
-          faceDetectedTimeRef.current = Date.now();
-          setCountdown(Math.ceil(AUTO_CAPTURE_DELAY / 1000));
-          
+      try {
+        // Detect faces using MediaPipe
+        const detections = await detectFaces(videoRef.current, performance.now());
+
+        // Check if face detected with sufficient confidence
+        const hasFace = detections.length > 0 &&
+                       detections[0].categories?.[0]?.score >= MIN_FACE_CONFIDENCE;
+
+        if (hasFace) {
+          // Update face stability tracker
+          const newStability = updateStabilityTracker(
+            detections[0],
+            faceStability,
+            videoRef.current
+          );
+          setFaceStability(newStability);
+
+          // Draw face overlay on canvas
+          const ctx = canvasRef.current.getContext('2d');
+          if (ctx) {
+            drawFaceOverlay(
+              ctx,
+              detections[0],
+              newStability.isStable,
+              canvasRef.current.width,
+              canvasRef.current.height,
+              videoRef.current.videoWidth,
+              videoRef.current.videoHeight
+            );
+          }
+
+          // If face is stable, start countdown
+          if (newStability.isStable) {
+            setFaceDetected(true);
+
+            if (!faceDetectedTimeRef.current) {
+              faceDetectedTimeRef.current = Date.now();
+              setCountdown(Math.ceil(AUTO_CAPTURE_DELAY / 1000));
+
+              if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+              }
+
+              countdownIntervalRef.current = setInterval(() => {
+                setCountdown(prev => {
+                  if (prev === null || prev <= 1) {
+                    if (countdownIntervalRef.current) {
+                      clearInterval(countdownIntervalRef.current);
+                    }
+                    return null;
+                  }
+                  return prev - 1;
+                });
+              }, 1000);
+            }
+
+            const elapsed = Date.now() - faceDetectedTimeRef.current;
+            if (elapsed >= AUTO_CAPTURE_DELAY) {
+              triggerAutoCapture();
+            }
+          } else {
+            // Face detected but not stable yet
+            setFaceDetected(false);
+            faceDetectedTimeRef.current = null;
+            setCountdown(null);
+          }
+        } else {
+          // No face detected - reset everything
+          setFaceDetected(false);
+          setFaceStability({
+            detectionCount: 0,
+            lastPosition: null,
+            isStable: false,
+          });
+          faceDetectedTimeRef.current = null;
+          setCountdown(null);
           if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
           }
-          
-          countdownIntervalRef.current = setInterval(() => {
-            setCountdown(prev => {
-              if (prev === null || prev <= 1) {
-                if (countdownIntervalRef.current) {
-                  clearInterval(countdownIntervalRef.current);
-                }
-                return null;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-        }
 
-        const elapsed = Date.now() - faceDetectedTimeRef.current;
-        if (elapsed >= AUTO_CAPTURE_DELAY) {
-          triggerAutoCapture();
+          // Clear canvas overlay
+          const ctx = canvasRef.current?.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          }
         }
-      } else {
-        faceDetectedTimeRef.current = null;
-        setCountdown(null);
-        if (countdownIntervalRef.current) {
-          clearInterval(countdownIntervalRef.current);
-        }
+      } catch (error) {
+        console.error('Face detection error:', error);
       }
-    }, FACE_DETECTION_INTERVAL);
+    };
 
-    return () => clearInterval(interval);
-  }, [cameraReady, scanning, isPaused, triggerAutoCapture]);
+    const interval = setInterval(runDetection, FACE_DETECTION_INTERVAL);
+
+    return () => {
+      clearInterval(interval);
+      if (detectionIntervalRef.current) {
+        clearInterval(detectionIntervalRef.current);
+      }
+    };
+  }, [cameraReady, scanning, isPaused, faceDetector, detectorLoading, faceStability, triggerAutoCapture]);
 
   const progressPercentage = countdown !== null 
     ? ((Math.ceil(AUTO_CAPTURE_DELAY / 1000) - countdown) / Math.ceil(AUTO_CAPTURE_DELAY / 1000)) * 100 
@@ -204,6 +318,14 @@ export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
         playsInline
         muted
         className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+      />
+
+      {/* Canvas overlay for face detection rectangle */}
+      <canvas
+        ref={canvasRef}
+        width={1280}
+        height={720}
+        className="absolute inset-0 w-full h-full pointer-events-none scale-x-[-1]"
       />
 
       <div className="absolute inset-0 bg-black/30" />

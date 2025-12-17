@@ -14,14 +14,13 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
+backend/build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+backend/lib/
+backend/lib64/
 parts/
 sdist/
 var/
@@ -63,8 +62,8 @@ yarn-error.log*
 # React/Next.js
 .next/
 out/
-build/
-dist/
+tap-to-attend/build/
+tap-to-attend/dist/
 
 # Submodules (if tap-to-attend should be included as submodule)
 # tap-to-attend/

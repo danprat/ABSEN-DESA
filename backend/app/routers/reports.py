@@ -44,10 +44,11 @@ def get_monthly_report(
         absent = sum(1 for a in attendances if a.status == AttendanceStatus.ALFA)
         leave = sum(1 for a in attendances if a.status == AttendanceStatus.IZIN)
         sick = sum(1 for a in attendances if a.status == AttendanceStatus.SAKIT)
-        
+        checkout = sum(1 for a in attendances if a.check_out_at is not None)
+
         total_days = len(attendances)
         attendance_pct = ((present + late) / total_days * 100) if total_days > 0 else 0
-        
+
         items.append(MonthlyReportItem(
             employee_id=emp.id,
             employee_name=emp.name,
@@ -59,6 +60,7 @@ def get_monthly_report(
             absent_days=absent,
             leave_days=leave,
             sick_days=sick,
+            checkout_days=checkout,
             attendance_percentage=round(attendance_pct, 2)
         ))
     
@@ -88,7 +90,7 @@ def export_attendance(
     
     writer.writerow([
         "NIP", "Nama", "Jabatan",
-        "Hadir", "Terlambat", "Alfa", "Izin", "Sakit",
+        "Hadir", "Terlambat", "Alfa", "Izin", "Sakit", "Checkout",
         "Total Hari", "Persentase Kehadiran"
     ])
     
@@ -106,10 +108,11 @@ def export_attendance(
         absent = sum(1 for a in attendances if a.status == AttendanceStatus.ALFA)
         leave = sum(1 for a in attendances if a.status == AttendanceStatus.IZIN)
         sick = sum(1 for a in attendances if a.status == AttendanceStatus.SAKIT)
-        
+        checkout = sum(1 for a in attendances if a.check_out_at is not None)
+
         total_days = len(attendances)
         attendance_pct = ((present + late) / total_days * 100) if total_days > 0 else 0
-        
+
         writer.writerow([
             emp.nip or "-",
             emp.name,
@@ -119,6 +122,7 @@ def export_attendance(
             absent,
             leave,
             sick,
+            checkout,
             total_days,
             f"{attendance_pct:.2f}%"
         ])

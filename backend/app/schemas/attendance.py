@@ -9,6 +9,7 @@ class AttendanceRecognizeResponse(BaseModel):
     attendance: Optional[dict]  # Optional: None when just recognizing, filled after confirmation
     message: str
     confidence: float
+    attendance_status: Optional[str] = None  # "belum_absen", "sudah_check_in", "sudah_lengkap"
 
 
 class AttendanceTodayItem(BaseModel):

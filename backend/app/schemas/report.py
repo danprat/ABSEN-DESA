@@ -13,6 +13,7 @@ class MonthlyReportItem(BaseModel):
     absent_days: int
     leave_days: int
     sick_days: int
+    checkout_days: int  # Jumlah hari yang sudah checkout
     attendance_percentage: float
 
 

@@ -1,5 +1,5 @@
-from typing import Optional
-from pydantic import BaseModel
+from typing import Optional, List
+from pydantic import BaseModel, Field
 from datetime import time, datetime
 
 
@@ -28,3 +28,28 @@ class WorkSettingsUpdate(BaseModel):
     late_threshold_minutes: Optional[int] = None
     check_out_start: Optional[time] = None
     min_work_hours: Optional[float] = None
+
+
+class DailyScheduleResponse(BaseModel):
+    id: int
+    day_of_week: int
+    is_workday: bool
+    check_in_start: time
+    check_in_end: time
+    check_out_start: time
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DailyScheduleUpdate(BaseModel):
+    day_of_week: int = Field(..., ge=0, le=6, description="0=Monday, 1=Tuesday, ..., 6=Sunday")
+    is_workday: bool
+    check_in_start: time
+    check_in_end: time
+    check_out_start: time
+
+
+class DailyScheduleBatchUpdate(BaseModel):
+    schedules: List[DailyScheduleUpdate]

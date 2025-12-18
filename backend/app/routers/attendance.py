@@ -55,19 +55,11 @@ async def recognize_face_only(
     # Validate attendance eligibility without saving
     from datetime import datetime, time
     now = datetime.now()
-    settings = attendance_service.get_work_settings(db)
-    mode = attendance_service.get_attendance_mode(now.time(), settings)
 
-    if mode is None:
+    if not attendance_service.is_workday(db, now.date()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Di luar jam absensi ({settings.check_in_start.strftime('%H:%M')}-{time(23, 59).strftime('%H:%M')})"
-        )
-
-    if attendance_service.is_weekend(now.date()):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Hari ini adalah akhir pekan"
+            detail="Hari ini bukan hari kerja"
         )
 
     if attendance_service.is_holiday(db, now.date()):
@@ -75,6 +67,31 @@ async def recognize_face_only(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Hari ini adalah hari libur"
         )
+
+    # Check current attendance status
+    existing_attendance = attendance_service.get_today_attendance(db, employee.id)
+    attendance_status = attendance_service.get_attendance_status(existing_attendance)
+
+    # Check if employee has already checked in
+    has_checked_in = existing_attendance is not None and existing_attendance.check_in_at is not None
+
+    # Use daily schedule instead of global settings
+    schedule = attendance_service.get_effective_schedule(db, now.date())
+    mode = attendance_service.get_attendance_mode(now.time(), schedule, has_checked_in)
+
+    if mode is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Di luar jam absensi ({schedule['check_in_start'].strftime('%H:%M')}-{time(23, 59).strftime('%H:%M')})"
+        )
+
+    # Prepare response message based on status
+    if attendance_status == "sudah_lengkap":
+        message = "Anda sudah absen lengkap hari ini (check-in & checkout)"
+    elif attendance_status == "sudah_check_in":
+        message = "Wajah dikenali. Klik 'Pulang' untuk checkout."
+    else:  # belum_absen
+        message = "Wajah dikenali. Klik 'Hadir' untuk konfirmasi absensi."
 
     # Return employee data without saving
     return AttendanceRecognizeResponse(
@@ -85,8 +102,9 @@ async def recognize_face_only(
             "photo": employee.photo_url
         },
         attendance=None,  # No attendance saved yet
-        message="Wajah dikenali. Klik 'Hadir' untuk konfirmasi absensi.",
-        confidence=round(confidence * 100, 1)
+        message=message,
+        confidence=round(confidence * 100, 1),
+        attendance_status=attendance_status
     )
 
 
@@ -96,7 +114,7 @@ def confirm_attendance(
     confidence: float = Form(...),
     db: Session = Depends(get_db)
 ):
-    """Confirm and save attendance after user clicks 'Hadir' button"""
+    """Confirm and save attendance after user clicks 'Hadir' or 'Pulang' button"""
     employee = db.query(Employee).filter(Employee.id == employee_id).first()
 
     if not employee:
@@ -113,6 +131,9 @@ def confirm_attendance(
             detail=message
         )
 
+    # Get updated attendance status after processing
+    attendance_status = attendance_service.get_attendance_status(attendance)
+
     return AttendanceRecognizeResponse(
         employee={
             "id": employee.id,
@@ -127,7 +148,8 @@ def confirm_attendance(
             "check_out_at": attendance.check_out_at.isoformat() if attendance.check_out_at else None
         },
         message=message,
-        confidence=round(confidence, 1)
+        confidence=round(confidence, 1),
+        attendance_status=attendance_status
     )
 
 

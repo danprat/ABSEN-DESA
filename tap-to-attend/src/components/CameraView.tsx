@@ -16,7 +16,7 @@ import {
 import type { FaceDetector } from '@mediapipe/tasks-vision';
 
 interface CameraViewProps {
-  onCapture: (employee: Employee, confidence: number) => void;
+  onCapture: (employee: Employee, confidence: number, attendanceStatus?: 'belum_absen' | 'sudah_check_in' | 'sudah_lengkap') => void;
   isPaused?: boolean;
 }
 
@@ -164,7 +164,7 @@ export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
 
       // Don't show success toast yet - waiting for user confirmation
       // Use confidence from backend (already in percentage)
-      onCapture(recognizedEmployee, result.confidence / 100);
+      onCapture(recognizedEmployee, result.confidence / 100, result.attendance_status);
     } catch (error) {
       console.error('Face recognition error:', error);
       

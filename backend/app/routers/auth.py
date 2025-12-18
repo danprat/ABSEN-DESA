@@ -4,8 +4,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.admin import Admin
-from app.schemas.auth import LoginRequest, TokenResponse
-from app.utils.auth import verify_password, create_access_token, get_password_hash
+from app.models.audit_log import AuditAction, EntityType
+from app.schemas.auth import LoginRequest, TokenResponse, ChangePasswordRequest
+from app.utils.auth import verify_password, create_access_token, get_password_hash, get_current_admin
+from app.utils.audit import log_audit
 from app.config import get_settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -50,7 +52,7 @@ def setup_admin(db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Admin sudah ada"
         )
-    
+
     admin = Admin(
         username="admin",
         password_hash=get_password_hash("admin123"),
@@ -58,5 +60,36 @@ def setup_admin(db: Session = Depends(get_db)):
     )
     db.add(admin)
     db.commit()
-    
+
     return {"message": "Admin berhasil dibuat", "username": "admin", "password": "admin123"}
+
+
+@router.patch("/change-password", response_model=dict)
+def change_password(
+    request: ChangePasswordRequest,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Change admin password. Requires authentication."""
+    # Verify current password
+    if not verify_password(request.current_password, current_admin.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password lama tidak benar"
+        )
+
+    # Update password
+    current_admin.password_hash = get_password_hash(request.new_password)
+    db.commit()
+
+    # Log audit action
+    log_audit(
+        db=db,
+        action=AuditAction.UPDATE,
+        entity_type=EntityType.ADMIN,
+        entity_id=current_admin.id,
+        description=f"Password changed for admin: {current_admin.username}",
+        performed_by=current_admin.username
+    )
+
+    return {"message": "Password berhasil diubah"}

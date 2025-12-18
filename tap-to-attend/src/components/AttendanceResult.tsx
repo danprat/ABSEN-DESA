@@ -9,15 +9,42 @@ interface AttendanceResultProps {
   onConfirm: () => void;
   onCancel: () => void;
   isLate: boolean;
+  attendanceStatus?: 'belum_absen' | 'sudah_check_in' | 'sudah_lengkap';
 }
 
-export function AttendanceResult({ 
-  employee, 
-  confidence, 
-  onConfirm, 
+export function AttendanceResult({
+  employee,
+  confidence,
+  onConfirm,
   onCancel,
-  isLate 
+  isLate,
+  attendanceStatus = 'belum_absen'
 }: AttendanceResultProps) {
+  // Determine UI text based on attendance status
+  const getConfirmationText = () => {
+    switch (attendanceStatus) {
+      case 'sudah_check_in':
+        return 'Konfirmasi pulang';
+      case 'sudah_lengkap':
+        return 'Sudah absen lengkap hari ini';
+      case 'belum_absen':
+      default:
+        return 'Konfirmasi kehadiran';
+    }
+  };
+
+  const getButtonText = () => {
+    switch (attendanceStatus) {
+      case 'sudah_check_in':
+        return 'Pulang';
+      case 'belum_absen':
+      default:
+        return 'Hadir';
+    }
+  };
+
+  const showConfirmButton = attendanceStatus !== 'sudah_lengkap';
+
   return (
     <AnimatePresence>
       <motion.div 
@@ -52,13 +79,13 @@ export function AttendanceResult({
           {/* Main content */}
           <div className="p-6 space-y-6">
             {/* Confirmation text */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               className="text-center"
             >
-              <p className="text-sm text-muted-foreground mb-1">Konfirmasi kehadiran</p>
+              <p className="text-sm text-muted-foreground mb-1">{getConfirmationText()}</p>
               <h2 className="text-2xl font-bold text-foreground">{employee.name}</h2>
               <p className="text-muted-foreground">{employee.position}</p>
             </motion.div>
@@ -87,7 +114,7 @@ export function AttendanceResult({
             </motion.div>
 
             {/* Action buttons */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -100,17 +127,19 @@ export function AttendanceResult({
                 className="flex-1"
               >
                 <X className="w-5 h-5" />
-                Batal
+                {showConfirmButton ? 'Batal' : 'Tutup'}
               </Button>
-              <Button
-                variant={isLate ? 'warning' : 'success'}
-                size="lg"
-                onClick={onConfirm}
-                className="flex-1"
-              >
-                <Check className="w-5 h-5" />
-                Hadir
-              </Button>
+              {showConfirmButton && (
+                <Button
+                  variant={isLate ? 'warning' : 'success'}
+                  size="lg"
+                  onClick={onConfirm}
+                  className="flex-1"
+                >
+                  <Check className="w-5 h-5" />
+                  {getButtonText()}
+                </Button>
+              )}
             </motion.div>
           </div>
         </motion.div>

@@ -92,14 +92,24 @@ export function AttendanceList({ records, onBackToCamera }: AttendanceListProps)
           <p className="font-medium text-foreground truncate">{record.employee.name}</p>
           <p className="text-sm text-muted-foreground truncate">{record.employee.position}</p>
         </div>
-        {record.timestamp && (
-          <p className={`text-sm font-medium ${config.textClass}`}>
-            {record.timestamp.toLocaleTimeString('id-ID', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
-          </p>
-        )}
+        <div className="text-right">
+          {record.timestamp && (
+            <p className={`text-sm font-medium ${config.textClass}`}>
+              {record.timestamp.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </p>
+          )}
+          {record.checkOut && (
+            <p className="text-xs text-muted-foreground">
+              Pulang: {record.checkOut.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </p>
+          )}
+        </div>
       </motion.div>
     );
   };

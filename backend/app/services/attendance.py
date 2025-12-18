@@ -6,6 +6,7 @@ from app.models.employee import Employee
 from app.models.attendance import AttendanceLog, AttendanceStatus
 from app.models.holiday import Holiday
 from app.models.work_settings import WorkSettings
+from app.models.daily_schedule import DailyWorkSchedule
 
 
 class AttendanceService:
@@ -21,19 +22,66 @@ class AttendanceService:
     def is_holiday(self, db: Session, check_date: date) -> bool:
         holiday = db.query(Holiday).filter(Holiday.date == check_date).first()
         return holiday is not None
+
+    def is_workday(self, db: Session, check_date: date) -> bool:
+        """Check if the given date is a workday based on DailyWorkSchedule."""
+        day_of_week = check_date.weekday()  # 0=Monday, 6=Sunday
+        schedule = db.query(DailyWorkSchedule).filter(
+            DailyWorkSchedule.day_of_week == day_of_week
+        ).first()
+
+        # If no schedule exists, default to weekday logic (Mon-Fri = workday)
+        if not schedule:
+            return day_of_week < 5
+
+        return schedule.is_workday
+
+    def get_daily_schedule(self, db: Session, check_date: date) -> Optional[DailyWorkSchedule]:
+        """Get the work schedule for a specific date."""
+        day_of_week = check_date.weekday()
+        return db.query(DailyWorkSchedule).filter(
+            DailyWorkSchedule.day_of_week == day_of_week
+        ).first()
     
-    def is_weekend(self, check_date: date) -> bool:
-        return check_date.weekday() in [5, 6]
-    
-    def get_attendance_mode(self, current_time: time, settings: WorkSettings) -> Optional[str]:
-        check_in_start = settings.check_in_start
-        check_in_end = settings.check_in_end
-        check_out_start = settings.check_out_start
+    def get_effective_schedule(self, db: Session, check_date: date) -> dict:
+        """Get effective work schedule for a date (daily schedule or fallback to global settings)."""
+        daily_schedule = self.get_daily_schedule(db, check_date)
+
+        if daily_schedule:
+            return {
+                "check_in_start": daily_schedule.check_in_start,
+                "check_in_end": daily_schedule.check_in_end,
+                "check_out_start": daily_schedule.check_out_start,
+            }
+
+        # Fallback to global settings
+        settings = self.get_work_settings(db)
+        return {
+            "check_in_start": settings.check_in_start,
+            "check_in_end": settings.check_in_end,
+            "check_out_start": settings.check_out_start,
+        }
+
+    def get_attendance_mode(self, current_time: time, schedule: dict, has_checked_in: bool = False) -> Optional[str]:
+        check_in_start = schedule["check_in_start"]
+        check_in_end = schedule["check_in_end"]
+        check_out_start = schedule["check_out_start"]
         # Set check_out_end to 23:59:59 (end of day)
         check_out_end = time(23, 59, 59)
 
+        # If already checked in, allow checkout anytime after check_in_end until end of day
+        if has_checked_in:
+            if current_time >= check_in_end and current_time <= check_out_end:
+                return "CHECK_OUT"
+            return None
+
+        # For check-in: only during check-in window
         if check_in_start <= current_time < check_in_end:
             return "CHECK_IN"
+        # For late check-in: allow until check_out_start (with late status)
+        elif check_in_end <= current_time < check_out_start:
+            return "CHECK_IN"
+        # After check_out_start: only checkout allowed
         elif check_out_start <= current_time <= check_out_end:
             return "CHECK_OUT"
         return None
@@ -46,6 +94,15 @@ class AttendanceService:
                 AttendanceLog.date == today
             )
         ).first()
+
+    def get_attendance_status(self, attendance: Optional[AttendanceLog]) -> str:
+        """Determine attendance status: belum_absen, sudah_check_in, sudah_lengkap."""
+        if not attendance or not attendance.check_in_at:
+            return "belum_absen"
+        elif attendance.check_in_at and not attendance.check_out_at:
+            return "sudah_check_in"
+        else:  # Both check_in_at and check_out_at exist
+            return "sudah_lengkap"
     
     def process_attendance(
         self,
@@ -56,27 +113,32 @@ class AttendanceService:
         now = datetime.now()
         today = now.date()
         current_time = now.time()
-        
-        if self.is_weekend(today):
-            return None, "Hari ini adalah akhir pekan"
-        
+
+        if not self.is_workday(db, today):
+            return None, "Hari ini bukan hari kerja"
+
         if self.is_holiday(db, today):
             return None, "Hari ini adalah hari libur"
 
-        settings = self.get_work_settings(db)
-        mode = self.get_attendance_mode(current_time, settings)
-        if mode is None:
-            return None, f"Di luar jam absensi ({settings.check_in_start.strftime('%H:%M')}-{time(23, 59).strftime('%H:%M')})"
-
+        # Use daily schedule instead of global settings
+        schedule = self.get_effective_schedule(db, today)
+        settings = self.get_work_settings(db)  # Still needed for late_threshold_minutes
         attendance = self.get_today_attendance(db, employee.id)
+
+        # Check if employee has already checked in
+        has_checked_in = attendance is not None and attendance.check_in_at is not None
+
+        mode = self.get_attendance_mode(current_time, schedule, has_checked_in)
+        if mode is None:
+            return None, f"Di luar jam absensi ({schedule['check_in_start'].strftime('%H:%M')}-{time(23, 59).strftime('%H:%M')})"
         
         if mode == "CHECK_IN":
             if attendance and attendance.check_in_at:
                 return attendance, f"Sudah absen masuk pukul {attendance.check_in_at.strftime('%H:%M')}"
-            
+
             late_threshold = datetime.combine(
                 today,
-                settings.check_in_end
+                schedule["check_in_end"]
             ) + timedelta(minutes=settings.late_threshold_minutes)
             
             if now <= late_threshold:
@@ -122,8 +184,8 @@ class AttendanceService:
     
     def mark_absent_employees(self, db: Session):
         today = date.today()
-        
-        if self.is_weekend(today) or self.is_holiday(db, today):
+
+        if not self.is_workday(db, today) or self.is_holiday(db, today):
             return
         
         employees = db.query(Employee).filter(Employee.is_active == True).all()

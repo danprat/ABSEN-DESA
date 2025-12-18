@@ -13,6 +13,7 @@ const DEFAULT_CONFIG = {
   villageName: 'Desa',
   officerName: 'Admin',
   lateThreshold: '08:15',
+  logoUrl: null as string | null,
 };
 
 const Index = () => {
@@ -23,6 +24,7 @@ const Index = () => {
   const [capturedEmployee, setCapturedEmployee] = useState<{
     employee: Employee;
     confidence: number;
+    attendanceStatus?: 'belum_absen' | 'sudah_check_in' | 'sudah_lengkap';
   } | null>(null);
 
   // Convert backend response to frontend format
@@ -71,14 +73,15 @@ const Index = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const settings = await api.admin.settings.get();
+        const settings = await api.public.settings();
         setConfig({
           villageName: settings.village_name,
           officerName: settings.officer_name || 'Admin',
-          lateThreshold: settings.check_in_end,
+          lateThreshold: settings.today_schedule?.check_in_end || '08:15',
+          logoUrl: settings.logo_url || null,
         });
       } catch {
-        // Use defaults if settings fetch fails (not logged in)
+        // Use defaults if settings fetch fails
       }
     };
     fetchSettings();
@@ -98,8 +101,8 @@ const Index = () => {
     return now > lateTime;
   };
 
-  const handleCapture = (employee: Employee, confidence: number) => {
-    setCapturedEmployee({ employee, confidence });
+  const handleCapture = (employee: Employee, confidence: number, attendanceStatus?: 'belum_absen' | 'sudah_check_in' | 'sudah_lengkap') => {
+    setCapturedEmployee({ employee, confidence, attendanceStatus });
   };
 
   const handleConfirmAttendance = async () => {
@@ -140,9 +143,10 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
-      <Header 
-        villageName={config.villageName} 
-        officerName={config.officerName} 
+      <Header
+        villageName={config.villageName}
+        officerName={config.officerName}
+        logoUrl={config.logoUrl}
       />
       
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -172,6 +176,7 @@ const Index = () => {
           onConfirm={handleConfirmAttendance}
           onCancel={handleCancelCapture}
           isLate={isLate()}
+          attendanceStatus={capturedEmployee.attendanceStatus}
         />
       )}
     </div>

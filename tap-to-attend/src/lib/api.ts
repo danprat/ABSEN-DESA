@@ -100,6 +100,7 @@ export interface BackendRecognizeResponse {
   } | null;  // Optional: null when just recognizing face
   message: string;
   confidence: number;
+  attendance_status?: 'belum_absen' | 'sudah_check_in' | 'sudah_lengkap';
 }
 
 // Backend employee list response
@@ -121,6 +122,17 @@ export interface BackendWorkSettings {
   late_threshold_minutes: number;
   check_out_start: string;
   min_work_hours: number;
+  updated_at: string;
+}
+
+// Backend daily schedule
+export interface BackendDailySchedule {
+  id: number;
+  day_of_week: number;  // 0=Monday, 6=Sunday
+  is_workday: boolean;
+  check_in_start: string;
+  check_in_end: string;
+  check_out_start: string;
   updated_at: string;
 }
 
@@ -168,6 +180,7 @@ export interface BackendMonthlyReportItem {
   absent_days: number;
   leave_days: number;
   sick_days: number;
+  checkout_days: number;
   attendance_percentage: number;
 }
 
@@ -208,6 +221,21 @@ export interface BackendFaceUploadResponse {
   message: string;
 }
 
+// Public settings types
+export interface PublicTodaySchedule {
+  is_workday: boolean;
+  check_in_start: string;
+  check_in_end: string;
+  check_out_start: string;
+}
+
+export interface PublicSettingsResponse {
+  village_name: string;
+  officer_name: string | null;
+  logo_url: string | null;
+  today_schedule: PublicTodaySchedule | null;
+}
+
 export const api = {
   auth: {
     login: async (credentials: LoginRequest): Promise<LoginResponse> => {
@@ -232,6 +260,11 @@ export const api = {
     
     isAuthenticated: (): boolean => {
       return authToken.get() !== null;
+    },
+
+    changePassword: async (data: { current_password: string; new_password: string; confirm_password: string }): Promise<{ message: string }> => {
+      const response = await apiClient.patch('/api/v1/auth/change-password', data);
+      return response.data;
     },
   },
 
@@ -282,6 +315,13 @@ export const api = {
       delete: async (employeeId: number, faceId: number): Promise<void> => {
         await apiClient.delete(`/api/v1/employees/${employeeId}/face/${faceId}`);
       },
+    },
+  },
+
+  public: {
+    settings: async (): Promise<PublicSettingsResponse> => {
+      const response = await apiClient.get<PublicSettingsResponse>('/api/v1/public/settings');
+      return response.data;
     },
   },
 
@@ -376,20 +416,52 @@ export const api = {
         const response = await apiClient.patch<BackendWorkSettings>('/api/v1/admin/settings', data);
         return response.data;
       },
-      
+
+      uploadLogo: async (file: File): Promise<{ message: string; logo_url: string }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await apiClient.post('/api/v1/admin/settings/logo', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+      },
+
+      deleteLogo: async (): Promise<{ message: string }> => {
+        const response = await apiClient.delete('/api/v1/admin/settings/logo');
+        return response.data;
+      },
+
       holidays: {
         list: async (params?: { year?: number }): Promise<BackendHolidayListResponse> => {
           const response = await apiClient.get<BackendHolidayListResponse>('/api/v1/admin/settings/holidays', { params });
           return response.data;
         },
-        
+
         create: async (data: { date: string; name: string }): Promise<BackendHoliday> => {
           const response = await apiClient.post<BackendHoliday>('/api/v1/admin/settings/holidays', data);
           return response.data;
         },
-        
+
         delete: async (id: number): Promise<void> => {
           await apiClient.delete(`/api/v1/admin/settings/holidays/${id}`);
+        },
+      },
+
+      schedules: {
+        list: async (): Promise<BackendDailySchedule[]> => {
+          const response = await apiClient.get<BackendDailySchedule[]>('/api/v1/admin/settings/schedules');
+          return response.data;
+        },
+
+        update: async (schedules: Array<{
+          day_of_week: number;
+          is_workday: boolean;
+          check_in_start: string;
+          check_in_end: string;
+          check_out_start: string;
+        }>): Promise<BackendDailySchedule[]> => {
+          const response = await apiClient.patch<BackendDailySchedule[]>('/api/v1/admin/settings/schedules', { schedules });
+          return response.data;
         },
       },
     },

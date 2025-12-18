@@ -5,7 +5,7 @@ import os
 
 from app.config import get_settings
 from app.database import engine, Base
-from app.routers import auth, employees, face, attendance, admin_attendance, reports, settings, audit
+from app.routers import auth, employees, face, attendance, admin_attendance, reports, settings, audit, public
 
 settings_config = get_settings()
 
@@ -36,6 +36,7 @@ app.include_router(admin_attendance.router, prefix=API_PREFIX)
 app.include_router(reports.router, prefix=API_PREFIX)
 app.include_router(settings.router, prefix=API_PREFIX)
 app.include_router(audit.router, prefix=API_PREFIX)
+app.include_router(public.router, prefix=API_PREFIX)
 
 
 @app.on_event("startup")

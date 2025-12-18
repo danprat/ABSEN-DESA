@@ -165,43 +165,38 @@ export function AdminLog() {
                 Tidak ada aktivitas ditemukan
               </p>
             ) : (
-              filteredLogs.map((log) => {
-                const config = actionConfig[log.action] || { label: log.action, color: 'bg-gray-500', icon: FileText };
-                const Icon = config.icon;
-                return (
-                  <motion.div
-                    key={log.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex gap-4 p-4 rounded-lg border border-border hover:bg-secondary/30 transition-colors"
-                  >
-                    <div className={`w-10 h-10 rounded-full ${config.color} flex items-center justify-center shrink-0`}>
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex gap-2 mb-2">
-                            <Badge variant="outline">
-                              {config.label}
-                            </Badge>
-                            <Badge variant="secondary">
-                              {entityConfig[log.entity_type] || log.entity_type}
-                            </Badge>
-                          </div>
-                          <p className="text-foreground">{log.description}</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground whitespace-nowrap">
-                          {formatDate(log.created_at)}
-                        </p>
+              <div className="divide-y divide-border">
+                {filteredLogs.map((log) => {
+                  const config = actionConfig[log.action] || { label: log.action, color: 'bg-gray-500', icon: FileText };
+                  const Icon = config.icon;
+                  return (
+                    <div
+                      key={log.id}
+                      className="flex items-center gap-3 py-2 hover:bg-secondary/30 transition-colors"
+                    >
+                      <div className={`w-7 h-7 rounded-full ${config.color} flex items-center justify-center shrink-0`}>
+                        <Icon className="w-3.5 h-3.5 text-white" />
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Oleh: {log.performed_by}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground truncate">{log.description}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{log.performed_by}</span>
+                          <span>•</span>
+                          <span>{formatDate(log.created_at)}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {config.label}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {entityConfig[log.entity_type] || log.entity_type}
+                        </Badge>
+                      </div>
                     </div>
-                  </motion.div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
         </CardContent>

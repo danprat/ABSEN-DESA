@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Users, 
-  CalendarCheck, 
-  History, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  CalendarCheck,
+  History,
+  Settings,
   FileText,
   Menu,
   X,
@@ -15,7 +15,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { appConfig } from '@/data/mockData';
+import { api } from '@/lib/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const navItems = [
   { path: '/admin', icon: LayoutDashboard, label: 'Beranda', exact: true },
@@ -31,6 +33,22 @@ export function AdminLayout() {
   const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [villageName, setVillageName] = useState('Admin Panel');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settings = await api.admin.settings.get();
+        setVillageName(settings.village_name);
+        setLogoUrl(settings.logo_url);
+      } catch (error) {
+        console.error('Failed to fetch settings:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -74,12 +92,12 @@ export function AdminLayout() {
       {/* Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ 
+        animate={{
           width: isMobile ? 260 : (sidebarOpen ? 260 : 72),
           x: isMobile ? (sidebarOpen ? 0 : -260) : 0
         }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className={`bg-background border-r border-border flex flex-col shrink-0 ${
+        className={`bg-background border-r border-border flex flex-col shrink-0 h-screen sticky top-0 ${
           isMobile ? 'fixed inset-y-0 left-0 z-50' : ''
         }`}
       >
@@ -91,10 +109,19 @@ export function AdminLayout() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-col"
+                className="flex items-center gap-3"
               >
-                <span className="font-semibold text-foreground text-sm md:text-base">{appConfig.villageName}</span>
-                <span className="text-xs text-muted-foreground">Admin Panel</span>
+                {logoUrl && (
+                  <img
+                    src={`${API_BASE_URL}${logoUrl}`}
+                    alt="Logo"
+                    className="w-10 h-10 object-contain"
+                  />
+                )}
+                <div className="flex flex-col">
+                  <span className="font-semibold text-foreground text-sm md:text-base">{villageName}</span>
+                  <span className="text-xs text-muted-foreground">Admin Panel</span>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -150,7 +177,7 @@ export function AdminLayout() {
           })}
         </nav>
 
-        {/* Footer */}
+        {/* Footer Actions */}
         <div className="p-2 border-t border-border space-y-1">
           <Link
             to="/"
@@ -203,7 +230,14 @@ export function AdminLayout() {
             >
               <Menu className="w-5 h-5" />
             </Button>
-            <span className="font-semibold text-foreground text-sm truncate">{appConfig.villageName}</span>
+            {logoUrl && (
+              <img
+                src={`${API_BASE_URL}${logoUrl}`}
+                alt="Logo"
+                className="w-6 h-6 object-contain"
+              />
+            )}
+            <span className="font-semibold text-foreground text-sm truncate">{villageName}</span>
           </header>
         )}
 
@@ -221,13 +255,13 @@ export function AdminLayout() {
         </AnimatePresence>
       </main>
 
-      {/* Fixed Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border py-2 px-4 z-50">
+      {/* Fixed Footer - only covers main content area, not sidebar */}
+      <footer className="fixed bottom-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border py-2 px-4 z-30 left-0 md:left-[72px] transition-all duration-300" style={{ left: isMobile ? 0 : (sidebarOpen ? 260 : 72) }}>
         <p className="text-[10px] md:text-xs text-muted-foreground text-center">
-          Dibuat oleh <span className="font-medium text-foreground">Dany Pratmanto</span> · 
-          <a 
-            href="https://wa.me/628974041777" 
-            target="_blank" 
+          Dibuat oleh <span className="font-medium text-foreground">Dany Pratmanto</span> ·
+          <a
+            href="https://wa.me/628974041777"
+            target="_blank"
             rel="noopener noreferrer"
             className="ml-1 text-primary hover:underline"
           >

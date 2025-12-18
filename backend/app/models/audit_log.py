@@ -16,6 +16,8 @@ class EntityType(str, enum.Enum):
     ATTENDANCE = "attendance"
     SETTINGS = "settings"
     HOLIDAY = "holiday"
+    DAILY_SCHEDULE = "daily_schedule"
+    ADMIN = "admin"
 
 
 class AuditLog(Base):

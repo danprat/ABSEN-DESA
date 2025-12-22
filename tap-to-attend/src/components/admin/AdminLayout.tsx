@@ -58,7 +58,7 @@ export function AdminLayout() {
       if (!mobile) setSidebarOpen(true);
       else setSidebarOpen(false);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -89,28 +89,144 @@ export function AdminLayout() {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <motion.aside
-        initial={false}
-        animate={{
-          width: isMobile ? 260 : (sidebarOpen ? 260 : 72),
-          x: isMobile ? (sidebarOpen ? 0 : -260) : 0
-        }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className={`bg-background border-r border-border flex flex-col shrink-0 h-screen sticky top-0 ${
-          isMobile ? 'fixed inset-y-0 left-0 z-50' : ''
-        }`}
-      >
-        {/* Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-          <AnimatePresence mode="wait">
-            {(sidebarOpen || isMobile) && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-3"
+      {/* Sidebar - Desktop */}
+      {!isMobile && (
+        <motion.aside
+          initial={false}
+          animate={{ width: sidebarOpen ? 260 : 72 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="bg-background border-r border-border flex flex-col shrink-0 h-screen sticky top-0"
+        >
+          {/* Header */}
+          <div className="h-16 flex items-center justify-between px-4 border-b border-border">
+            <AnimatePresence mode="wait">
+              {(sidebarOpen || isMobile) && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-3"
+                >
+                  {logoUrl && (
+                    <img
+                      src={`${API_BASE_URL}${logoUrl}`}
+                      alt="Logo"
+                      className="w-10 h-10 object-contain"
+                    />
+                  )}
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-semibold text-foreground text-sm md:text-base truncate" title={villageName}>{villageName}</span>
+                    <span className="text-xs text-muted-foreground truncate">Admin Panel</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {!isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
               >
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+            )}
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            )}
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+            {navItems.map((item) => {
+              const active = isActive(item.path, item.exact);
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${active
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                >
+                  <item.icon className="w-5 h-5 shrink-0" />
+                  <AnimatePresence mode="wait">
+                    {(sidebarOpen || isMobile) && (
+                      <motion.span
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: 'auto' }}
+                        exit={{ opacity: 0, width: 0 }}
+                        className="font-medium whitespace-nowrap overflow-hidden text-sm"
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Footer Actions */}
+          <div className="p-2 border-t border-border space-y-1">
+            <Link
+              to="/"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+            >
+              <Home className="w-5 h-5 shrink-0" />
+              <AnimatePresence mode="wait">
+                {(sidebarOpen || isMobile) && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    className="font-medium whitespace-nowrap overflow-hidden text-sm"
+                  >
+                    Ke Mesin Absensi
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+            <button
+              onClick={logout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+            >
+              <LogOut className="w-5 h-5 shrink-0" />
+              <AnimatePresence mode="wait">
+                {(sidebarOpen || isMobile) && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    className="font-medium whitespace-nowrap overflow-hidden text-sm"
+                  >
+                    Keluar
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+          </div>
+        </motion.aside>
+      )}
+
+      {/* Sidebar - Mobile */}
+      <AnimatePresence>
+        {isMobile && sidebarOpen && (
+          <motion.aside
+            initial={{ x: -260 }}
+            animate={{ x: 0 }}
+            exit={{ x: -260 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="bg-background border-r border-border flex flex-col w-[260px] h-screen fixed inset-y-0 left-0 z-50"
+          >
+            {/* Header */}
+            <div className="h-16 flex items-center justify-between px-4 border-b border-border">
+              <div className="flex items-center gap-3">
                 {logoUrl && (
                   <img
                     src={`${API_BASE_URL}${logoUrl}`}
@@ -118,105 +234,60 @@ export function AdminLayout() {
                     className="w-10 h-10 object-contain"
                   />
                 )}
-                <div className="flex flex-col">
-                  <span className="font-semibold text-foreground text-sm md:text-base">{villageName}</span>
-                  <span className="text-xs text-muted-foreground">Admin Panel</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-semibold text-foreground text-sm truncate" title={villageName}>{villageName}</span>
+                  <span className="text-xs text-muted-foreground truncate">Admin Panel</span>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {!isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-          )}
-          {isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const active = isActive(item.path, item.exact);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                  active 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(false)}
               >
-                <item.icon className="w-5 h-5 shrink-0" />
-                <AnimatePresence mode="wait">
-                  {(sidebarOpen || isMobile) && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: 'auto' }}
-                      exit={{ opacity: 0, width: 0 }}
-                      className="font-medium whitespace-nowrap overflow-hidden text-sm"
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </Link>
-            );
-          })}
-        </nav>
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
 
-        {/* Footer Actions */}
-        <div className="p-2 border-t border-border space-y-1">
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-          >
-            <Home className="w-5 h-5 shrink-0" />
-            <AnimatePresence mode="wait">
-              {(sidebarOpen || isMobile) && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="font-medium whitespace-nowrap overflow-hidden text-sm"
-                >
-                  Ke Mesin Absensi
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </Link>
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-          >
-            <LogOut className="w-5 h-5 shrink-0" />
-            <AnimatePresence mode="wait">
-              {(sidebarOpen || isMobile) && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="font-medium whitespace-nowrap overflow-hidden text-sm"
-                >
-                  Keluar
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </button>
-        </div>
-      </motion.aside>
+            {/* Navigation */}
+            <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+              {navItems.map((item) => {
+                const active = isActive(item.path, item.exact);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${active
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                  >
+                    <item.icon className="w-5 h-5 shrink-0" />
+                    <span className="font-medium text-sm">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Footer Actions */}
+            <div className="p-2 border-t border-border space-y-1">
+              <Link
+                to="/"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+              >
+                <Home className="w-5 h-5 shrink-0" />
+                <span className="font-medium text-sm">Ke Mesin Absensi</span>
+              </Link>
+              <button
+                onClick={logout}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+              >
+                <LogOut className="w-5 h-5 shrink-0" />
+                <span className="font-medium text-sm">Keluar</span>
+              </button>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       {/* Main content */}
       <main className="flex-1 overflow-auto flex flex-col min-w-0">
@@ -256,7 +327,10 @@ export function AdminLayout() {
       </main>
 
       {/* Fixed Footer - only covers main content area, not sidebar */}
-      <footer className="fixed bottom-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border py-2 px-4 z-30 left-0 md:left-[72px] transition-all duration-300" style={{ left: isMobile ? 0 : (sidebarOpen ? 260 : 72) }}>
+      <footer
+        className="fixed bottom-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border py-2 px-4 z-30 transition-all duration-300"
+        style={{ left: isMobile ? 0 : (sidebarOpen ? 260 : 72) }}
+      >
         <p className="text-[10px] md:text-xs text-muted-foreground text-center">
           Dibuat oleh <span className="font-medium text-foreground">Dany Pratmanto</span> ·
           <a

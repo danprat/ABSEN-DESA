@@ -63,6 +63,7 @@ export interface BackendEmployee {
   email: string | null;
   photo_url: string | null;
   is_active: boolean;
+  face_count: number;
   created_at: string;
   updated_at: string;
 }

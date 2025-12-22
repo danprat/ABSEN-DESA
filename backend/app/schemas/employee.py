@@ -29,6 +29,7 @@ class EmployeeUpdate(BaseModel):
 class EmployeeResponse(EmployeeBase):
     id: int
     is_active: bool
+    face_count: int
     created_at: datetime
     updated_at: datetime
 

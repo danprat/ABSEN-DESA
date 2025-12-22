@@ -597,8 +597,8 @@ export function AdminPengaturan() {
 
         <TabsContent value="hari-libur" className="space-y-6">
           {/* Year Selector */}
-          <div className="flex justify-center mb-8">
-            <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-full border border-border/50 backdrop-blur-sm shadow-sm ring-1 ring-border/50">
+          <div className="flex justify-center mb-6 md:mb-8 px-2">
+            <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 bg-muted/20 rounded-full border border-border/50 backdrop-blur-sm shadow-sm ring-1 ring-border/50 overflow-x-auto max-w-full">
               {(() => {
                 const currentYear = new Date().getFullYear();
                 const years = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
@@ -612,7 +612,7 @@ export function AdminPengaturan() {
                         setSelectedYear(year);
                         fetchHolidays(year);
                       }}
-                      className={`relative px-4 py-1.5 text-sm font-medium rounded-full transition-colors z-10 ${isSelected ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                      className={`relative px-2.5 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-full transition-colors z-10 whitespace-nowrap ${isSelected ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                       {isSelected && (
                         <motion.div
@@ -621,7 +621,7 @@ export function AdminPengaturan() {
                           transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         />
                       )}
-                      <span className="relative flex items-center gap-1.5">
+                      <span className="relative flex items-center gap-1 sm:gap-1.5">
                         {year}
                         {isCurrent && (
                           <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-green-500'}`} />
@@ -799,83 +799,126 @@ export function AdminPengaturan() {
                   </Button>
                 </div>
               ) : (
-                <div className="rounded-xl border overflow-hidden bg-background">
-                  <table className="w-full">
-                    <thead className="bg-muted/50 border-b">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tanggal</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Keterangan</th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground hidden sm:table-cell">Sumber</th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground hidden md:table-cell">Status</th>
-                        <th className="px-4 py-3 w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {holidays.map((holiday) => (
-                        <tr key={holiday.id} className="hover:bg-muted/30 transition-colors group">
-                          <td className="px-4 py-3">
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {new Date(holiday.date).toLocaleDateString('id-ID', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                })}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(holiday.date).toLocaleDateString('id-ID', { weekday: 'long' })}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium">{holiday.name}</span>
-                              <div className="sm:hidden flex gap-1">
-                                {holiday.is_auto ? (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">API</span>
-                                ) : (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">Manual</span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-center hidden sm:table-cell">
-                            {holiday.is_auto ? (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                                <RefreshCw className="w-3 h-3" />
-                                API
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
-                                <User className="w-3 h-3" />
-                                Manual
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center hidden md:table-cell">
-                            {holiday.is_cuti ? (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
-                                Cuti Bersama
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Libur Nasional</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteHoliday(holiday.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive h-8 w-8"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </td>
+                <>
+                  {/* Desktop Table */}
+                  <div className="hidden md:block rounded-xl border overflow-hidden bg-background">
+                    <table className="w-full">
+                      <thead className="bg-muted/50 border-b">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tanggal</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Keterangan</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Sumber</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Status</th>
+                          <th className="px-4 py-3 w-12"></th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y">
+                        {holidays.map((holiday) => (
+                          <tr key={holiday.id} className="hover:bg-muted/30 transition-colors group">
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {new Date(holiday.date).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(holiday.date).toLocaleDateString('id-ID', { weekday: 'long' })}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="font-medium">{holiday.name}</span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {holiday.is_auto ? (
+                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                  <RefreshCw className="w-3 h-3" />
+                                  API
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                                  <User className="w-3 h-3" />
+                                  Manual
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {holiday.is_cuti ? (
+                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
+                                  Cuti Bersama
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Libur Nasional</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteHoliday(holiday.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive h-8 w-8"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="md:hidden space-y-3">
+                    {holidays.map((holiday) => (
+                      <div key={holiday.id} className="p-4 rounded-xl border bg-background hover:bg-muted/30 transition-colors">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground">{holiday.name}</p>
+                            <p className="text-sm text-muted-foreground mt-0.5">
+                              {new Date(holiday.date).toLocaleDateString('id-ID', {
+                                weekday: 'long',
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {holiday.is_auto ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                  API
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                                  Manual
+                                </span>
+                              )}
+                              {holiday.is_cuti ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
+                                  Cuti Bersama
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                  Libur Nasional
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteHoliday(holiday.id)}
+                            className="hover:text-destructive h-8 w-8 shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

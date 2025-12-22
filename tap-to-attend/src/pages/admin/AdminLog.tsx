@@ -210,12 +210,12 @@ export function AdminLog() {
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-4 pt-2 border-t">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 pt-2 border-t">
               <div className="flex items-center gap-2 w-full md:w-auto">
                 <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground whitespace-nowrap">Rentang Waktu:</span>
               </div>
-              <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="grid grid-cols-2 gap-2 w-full md:w-auto md:flex">
                 <Input
                   type="date"
                   className="h-9 text-sm"
@@ -225,7 +225,6 @@ export function AdminLog() {
                     setCurrentPage(1);
                   }}
                 />
-                <span className="text-muted-foreground">-</span>
                 <Input
                   type="date"
                   className="h-9 text-sm"
@@ -236,11 +235,11 @@ export function AdminLog() {
                   }}
                 />
               </div>
-              <div className="hidden md:flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs px-3"
+                  className="h-8 text-xs px-3 bg-secondary/50 flex-1 md:flex-none"
                   onClick={() => {
                     const today = new Date().toISOString().split('T')[0];
                     setStartDate(today);
@@ -253,7 +252,7 @@ export function AdminLog() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs px-3"
+                  className="h-8 text-xs px-3 bg-secondary/50 flex-1 md:flex-none"
                   onClick={() => {
                     const now = new Date();
                     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -306,31 +305,35 @@ export function AdminLog() {
                     return (
                       <div
                         key={log.id}
-                        className="flex items-center gap-3 py-3 hover:bg-secondary/30 transition-colors"
+                        className="flex items-start sm:items-center gap-3 py-3 px-1 hover:bg-secondary/30 transition-colors"
                       >
                         <div className={`w-8 h-8 rounded-full ${config.color} flex items-center justify-center shrink-0`}>
                           <Icon className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground leading-none mb-1.5">{log.description}</p>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground font-medium">
-                            <span className="flex items-center gap-1.5">
-                              <User className="w-3 h-3" />
-                              {log.performed_by}
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                              <Clock className="w-3 h-3" />
-                              {formatDate(log.created_at)}
-                            </span>
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground leading-tight mb-1">{log.description}</p>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground font-medium">
+                                <span className="flex items-center gap-1.5">
+                                  <User className="w-3 h-3" />
+                                  {log.performed_by}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <Clock className="w-3 h-3" />
+                                  {formatDate(log.created_at)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-1.5 shrink-0">
+                              <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0 h-5">
+                                {config.label}
+                              </Badge>
+                              <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0 h-5">
+                                {entityConfig[log.entity_type] || log.entity_type}
+                              </Badge>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 shrink-0">
-                          <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0 h-5">
-                            {config.label}
-                          </Badge>
-                          <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0 h-5">
-                            {entityConfig[log.entity_type] || log.entity_type}
-                          </Badge>
                         </div>
                       </div>
                     );
@@ -339,11 +342,15 @@ export function AdminLog() {
 
                 {/* Pagination UI */}
                 {totalPages > 1 && (
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground font-medium">
-                      Menampilkan <span className="text-foreground">{(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, totalLogs)}</span> dari <span className="text-foreground">{totalLogs}</span> aktivitas
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t">
+                    <p className="text-xs text-muted-foreground font-medium text-center sm:text-left">
+                      <span className="hidden xs:inline">Menampilkan </span>
+                      <span className="text-foreground">{(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, totalLogs)}</span>
+                      <span className="hidden xs:inline"> dari</span><span className="xs:hidden">/</span>
+                      <span className="text-foreground"> {totalLogs}</span>
+                      <span className="hidden xs:inline"> aktivitas</span>
                     </p>
-                    <Pagination className="md:w-auto mx-0">
+                    <Pagination className="w-full sm:w-auto mx-0">
                       <PaginationContent>
                         <PaginationItem>
                           <PaginationPrevious

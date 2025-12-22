@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 interface HeaderProps {
@@ -7,15 +9,27 @@ interface HeaderProps {
 }
 
 export function Header({ villageName, officerName, logoUrl }: HeaderProps) {
-  const now = new Date();
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const timeString = now.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
+    hour12: false
   });
+
   const dateString = now.toLocaleDateString('id-ID', {
     weekday: 'long',
     day: 'numeric',
-    month: 'short',
+    month: 'long',
+    year: 'numeric',
   });
 
   return (

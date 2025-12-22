@@ -48,7 +48,7 @@ export function AdminPegawai() {
   const [isUploadingFace, setIsUploadingFace] = useState(false);
   const [isLoadingFaces, setIsLoadingFaces] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Camera states for face enrollment
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -211,17 +211,17 @@ export function AdminPegawai() {
     const video = videoRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     ctx.drawImage(video, 0, 0);
-    
+
     canvas.toBlob(async (blob) => {
       if (!blob) return;
-      
+
       const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
-      
+
       try {
         setIsUploadingFace(true);
         const result = await api.employees.face.upload(selectedEmployee.id, file);
@@ -391,8 +391,8 @@ export function AdminPegawai() {
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card>
+      {/* Table - Desktop */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -418,8 +418,8 @@ export function AdminPegawai() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {employee.photo_url ? (
-                          <img 
-                            src={`${API_BASE_URL}${employee.photo_url}`} 
+                          <img
+                            src={`${API_BASE_URL}${employee.photo_url}`}
                             alt={employee.name}
                             className="w-10 h-10 rounded-full object-cover"
                           />
@@ -444,15 +444,23 @@ export function AdminPegawai() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openFaceDialog(employee)}
-                        className="gap-1"
-                      >
-                        <ScanFace className="w-4 h-4" />
-                        Kelola
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        <Badge
+                          variant={employee.face_count > 0 ? "outline" : "destructive"}
+                          className={`w-fit ${employee.face_count > 0 ? 'bg-green-50 text-green-700 border-green-200' : ''}`}
+                        >
+                          {employee.face_count} Foto
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openFaceDialog(employee)}
+                          className="w-fit h-auto p-0 text-xs text-muted-foreground hover:text-primary"
+                        >
+                          <ScanFace className="w-3 h-3 mr-1" />
+                          Kelola
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
@@ -492,6 +500,101 @@ export function AdminPegawai() {
         </CardContent>
       </Card>
 
+      {/* List - Mobile */}
+      <div className="md:hidden space-y-4">
+        {employees.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg">
+            {search ? 'Tidak ada pegawai yang cocok' : 'Belum ada data pegawai'}
+          </div>
+        ) : (
+          employees.map((employee) => (
+            <Card key={employee.id} className="overflow-hidden">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    {employee.photo_url ? (
+                      <img
+                        src={`${API_BASE_URL}${employee.photo_url}`}
+                        alt={employee.name}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-lg font-medium text-primary">
+                          {employee.name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold">{employee.name}</p>
+                      <p className="text-sm text-muted-foreground">{employee.position}</p>
+                    </div>
+                  </div>
+                  <Badge variant={employee.is_active ? 'default' : 'secondary'}>
+                    {employee.is_active ? 'Aktif' : 'Nonaktif'}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground block text-xs">NIP</span>
+                    <span>{employee.nip || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Email</span>
+                    <span className="truncate block">{employee.email || '-'}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openFaceDialog(employee)}
+                    className="p-0 h-auto gap-1 text-muted-foreground hover:text-primary"
+                  >
+                    <Badge
+                      variant={employee.face_count > 0 ? "outline" : "destructive"}
+                      className={`mr-1 px-1.5 py-0 text-[10px] ${employee.face_count > 0 ? 'bg-green-50 text-green-700 border-green-200' : ''}`}
+                    >
+                      {employee.face_count}
+                    </Badge>
+                    Foto Wajah
+                  </Button>
+
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => toggleStatus(employee)}
+                    >
+                      {employee.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(employee)}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDelete(employee.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
       {/* Face Enrollment Dialog */}
       <Dialog open={faceDialogOpen} onOpenChange={closeFaceDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -501,7 +604,7 @@ export function AdminPegawai() {
               Foto Wajah - {selectedEmployee?.name}
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* Camera View */}
             {isCameraActive ? (
@@ -547,7 +650,7 @@ export function AdminPegawai() {
                   className="hidden"
                   onChange={handleFaceUpload}
                 />
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingFace}
@@ -564,7 +667,7 @@ export function AdminPegawai() {
                 </p>
               </div>
             )}
-            
+
             <canvas ref={canvasRef} className="hidden" />
 
             {/* Face photos grid */}

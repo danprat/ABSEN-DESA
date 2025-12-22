@@ -1,5 +1,5 @@
 from typing import Optional, List
-from datetime import time
+from datetime import time, datetime
 import os
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
@@ -16,9 +16,10 @@ from app.schemas.settings import (
     DailyScheduleResponse,
     DailyScheduleBatchUpdate
 )
-from app.schemas.holiday import HolidayCreate, HolidayResponse, HolidayListResponse
+from app.schemas.holiday import HolidayCreate, HolidayResponse, HolidayListResponse, HolidaySyncResponse
 from app.utils.auth import get_current_admin
 from app.utils.audit import log_audit
+from app.services.holiday_service import sync_holidays_from_api
 
 router = APIRouter(prefix="/admin/settings", tags=["Settings"])
 
@@ -194,7 +195,7 @@ def list_holidays(
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
-    query = db.query(Holiday)
+    query = db.query(Holiday).filter(Holiday.is_excluded == False)
     
     if year:
         from sqlalchemy import extract
@@ -257,8 +258,102 @@ def delete_holiday(
         performed_by=admin.name
     )
 
-    db.delete(holiday)
+    # Untuk libur dari API, tandai sebagai excluded agar tidak muncul lagi saat sync
+    # Untuk libur manual, hapus langsung dari database
+    if holiday.is_auto:
+        holiday.is_excluded = True
+        db.commit()
+    else:
+        db.delete(holiday)
+        db.commit()
+
+
+@router.post("/holidays/sync", response_model=HolidaySyncResponse)
+async def sync_holidays(
+    year: Optional[int] = Query(default=None, description="Tahun untuk sync, default tahun ini"),
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """Sync hari libur dari dayoff-API eksternal."""
+    try:
+        target_year = year or datetime.now().year
+        stats = await sync_holidays_from_api(db, target_year)
+        
+        log_audit(
+            db=db,
+            action=AuditAction.CREATE,
+            entity_type=EntityType.HOLIDAY,
+            entity_id=None,
+            description=f"Sync hari libur dari API: {stats['added']} ditambahkan, {stats['updated']} diperbarui",
+            performed_by=admin.name,
+            details=stats
+        )
+        
+        return HolidaySyncResponse(
+            added=stats["added"],
+            updated=stats["updated"],
+            skipped=stats["skipped"],
+            message=f"Berhasil sync {stats['added']} hari libur baru, {stats['updated']} diperbarui"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Gagal sync dari API: {str(e)}"
+        )
+
+
+@router.get("/holidays/excluded", response_model=HolidayListResponse)
+def list_excluded_holidays(
+    year: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """List holidays that have been excluded (deleted by admin)."""
+    query = db.query(Holiday).filter(Holiday.is_excluded == True)
+    
+    if year:
+        from sqlalchemy import extract
+        query = query.filter(extract('year', Holiday.date) == year)
+    
+    holidays = query.order_by(Holiday.date).all()
+    
+    return HolidayListResponse(items=holidays, total=len(holidays))
+
+
+@router.post("/holidays/{holiday_id}/restore", response_model=HolidayResponse)
+def restore_holiday(
+    holiday_id: int,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """Restore a previously excluded holiday."""
+    holiday = db.query(Holiday).filter(Holiday.id == holiday_id).first()
+    if not holiday:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Hari libur tidak ditemukan"
+        )
+    
+    if not holiday.is_excluded:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Hari libur ini tidak dalam status dihapus"
+        )
+    
+    holiday.is_excluded = False
     db.commit()
+    db.refresh(holiday)
+    
+    log_audit(
+        db=db,
+        action=AuditAction.UPDATE,
+        entity_type=EntityType.HOLIDAY,
+        entity_id=holiday.id,
+        description=f"Mengembalikan hari libur: {holiday.name} ({holiday.date})",
+        performed_by=admin.name
+    )
+    
+    return holiday
 
 
 @router.get("/schedules", response_model=List[DailyScheduleResponse])

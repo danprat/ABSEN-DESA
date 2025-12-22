@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from datetime import date, datetime
 
@@ -14,6 +14,8 @@ class HolidayCreate(HolidayBase):
 
 class HolidayResponse(HolidayBase):
     id: int
+    is_auto: bool = False
+    is_cuti: bool = False
     created_at: datetime
 
     class Config:
@@ -23,3 +25,10 @@ class HolidayResponse(HolidayBase):
 class HolidayListResponse(BaseModel):
     items: List[HolidayResponse]
     total: int
+
+
+class HolidaySyncResponse(BaseModel):
+    added: int
+    updated: int
+    skipped: int
+    message: str

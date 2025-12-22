@@ -141,7 +141,16 @@ export interface BackendHoliday {
   id: number;
   date: string;
   name: string;
+  is_auto: boolean;
+  is_cuti: boolean;
   created_at: string;
+}
+
+export interface BackendHolidaySyncResponse {
+  added: number;
+  updated: number;
+  skipped: number;
+  message: string;
 }
 
 export interface BackendHolidayListResponse {
@@ -242,22 +251,22 @@ export const api = {
       const formData = new URLSearchParams();
       formData.append('username', credentials.username);
       formData.append('password', credentials.password);
-      
+
       const response = await apiClient.post<LoginResponse>('/api/v1/auth/login', formData, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
       return response.data;
     },
-    
+
     setup: async (): Promise<{ message: string; username: string; password: string }> => {
       const response = await apiClient.post('/api/v1/auth/setup');
       return response.data;
     },
-    
+
     logout: (): void => {
       authToken.remove();
     },
-    
+
     isAuthenticated: (): boolean => {
       return authToken.get() !== null;
     },
@@ -273,37 +282,37 @@ export const api = {
       const response = await apiClient.get<BackendEmployeeListResponse>('/api/v1/employees', { params });
       return response.data;
     },
-    
+
     get: async (id: number): Promise<BackendEmployee> => {
       const response = await apiClient.get<BackendEmployee>(`/api/v1/employees/${id}`);
       return response.data;
     },
-    
+
     create: async (data: { name: string; position: string; nip?: string; phone?: string; email?: string }): Promise<BackendEmployee> => {
       const response = await apiClient.post<BackendEmployee>('/api/v1/employees', data);
       return response.data;
     },
-    
+
     update: async (id: number, data: Partial<{ name: string; position: string; nip: string; phone: string; email: string; is_active: boolean }>): Promise<BackendEmployee> => {
       const response = await apiClient.patch<BackendEmployee>(`/api/v1/employees/${id}`, data);
       return response.data;
     },
-    
+
     delete: async (id: number): Promise<void> => {
       await apiClient.delete(`/api/v1/employees/${id}`);
     },
-    
+
     // Face enrollment
     face: {
       list: async (employeeId: number): Promise<BackendFaceEmbedding[]> => {
         const response = await apiClient.get<BackendFaceEmbedding[]>(`/api/v1/employees/${employeeId}/face`);
         return response.data;
       },
-      
+
       upload: async (employeeId: number, file: File): Promise<BackendFaceUploadResponse> => {
         const formData = new FormData();
         formData.append('file', file);
-        
+
         const response = await apiClient.post<BackendFaceUploadResponse>(
           `/api/v1/employees/${employeeId}/face`,
           formData,
@@ -311,7 +320,7 @@ export const api = {
         );
         return response.data;
       },
-      
+
       delete: async (employeeId: number, faceId: number): Promise<void> => {
         await apiClient.delete(`/api/v1/employees/${employeeId}/face/${faceId}`);
       },
@@ -370,12 +379,12 @@ export const api = {
         const response = await apiClient.get('/api/v1/admin/attendance', { params });
         return response.data;
       },
-      
+
       correct: async (id: number, data: { status?: string; check_in_at?: string; check_out_at?: string; correction_notes?: string }) => {
         const response = await apiClient.patch(`/api/v1/admin/attendance/${id}`, data);
         return response.data;
       },
-      
+
       today: async (): Promise<BackendAttendanceTodayAdminResponse> => {
         const response = await apiClient.get<BackendAttendanceTodayAdminResponse>('/api/v1/admin/attendance/today');
         return response.data;
@@ -387,7 +396,7 @@ export const api = {
         const response = await apiClient.get<BackendMonthlyReportResponse>('/api/v1/admin/reports/monthly', { params });
         return response.data;
       },
-      
+
       export: async (params: { month: number; year: number }): Promise<Blob> => {
         const response = await apiClient.get('/api/v1/admin/reports/export', {
           params,
@@ -402,7 +411,7 @@ export const api = {
         const response = await apiClient.get<BackendWorkSettings>('/api/v1/admin/settings');
         return response.data;
       },
-      
+
       update: async (data: Partial<{
         village_name: string;
         officer_name: string;
@@ -437,6 +446,11 @@ export const api = {
           return response.data;
         },
 
+        listExcluded: async (params?: { year?: number }): Promise<BackendHolidayListResponse> => {
+          const response = await apiClient.get<BackendHolidayListResponse>('/api/v1/admin/settings/holidays/excluded', { params });
+          return response.data;
+        },
+
         create: async (data: { date: string; name: string }): Promise<BackendHoliday> => {
           const response = await apiClient.post<BackendHoliday>('/api/v1/admin/settings/holidays', data);
           return response.data;
@@ -444,6 +458,16 @@ export const api = {
 
         delete: async (id: number): Promise<void> => {
           await apiClient.delete(`/api/v1/admin/settings/holidays/${id}`);
+        },
+
+        restore: async (id: number): Promise<BackendHoliday> => {
+          const response = await apiClient.post<BackendHoliday>(`/api/v1/admin/settings/holidays/${id}/restore`);
+          return response.data;
+        },
+
+        sync: async (year?: number): Promise<BackendHolidaySyncResponse> => {
+          const response = await apiClient.post<BackendHolidaySyncResponse>('/api/v1/admin/settings/holidays/sync', null, { params: { year } });
+          return response.data;
         },
       },
 
@@ -467,7 +491,15 @@ export const api = {
     },
 
     auditLogs: {
-      list: async (params?: { action?: string; entity_type?: string; page?: number; page_size?: number }): Promise<BackendAuditLogListResponse> => {
+      list: async (params?: {
+        action?: string;
+        entity_type?: string;
+        search?: string;
+        start_date?: string;
+        end_date?: string;
+        page?: number;
+        page_size?: number
+      }): Promise<BackendAuditLogListResponse> => {
         const response = await apiClient.get<BackendAuditLogListResponse>('/api/v1/admin/audit-logs', { params });
         return response.data;
       },

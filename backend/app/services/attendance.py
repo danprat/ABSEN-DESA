@@ -20,7 +20,11 @@ class AttendanceService:
         return settings
     
     def is_holiday(self, db: Session, check_date: date) -> bool:
-        holiday = db.query(Holiday).filter(Holiday.date == check_date).first()
+        """Check if the given date is a holiday (excluding holidays marked as is_excluded)."""
+        holiday = db.query(Holiday).filter(
+            Holiday.date == check_date,
+            Holiday.is_excluded == False
+        ).first()
         return holiday is not None
 
     def is_workday(self, db: Session, check_date: date) -> bool:

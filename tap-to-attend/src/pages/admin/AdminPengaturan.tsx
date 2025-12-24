@@ -46,6 +46,7 @@ export function AdminPengaturan() {
     village_name: '',
     officer_name: '',
     late_threshold_minutes: 15,
+    face_similarity_threshold: 0.55,
   });
 
   const fetchData = async () => {
@@ -64,6 +65,7 @@ export function AdminPengaturan() {
         village_name: settingsData.village_name,
         officer_name: settingsData.officer_name || '',
         late_threshold_minutes: settingsData.late_threshold_minutes,
+        face_similarity_threshold: settingsData.face_similarity_threshold ?? 0.55,
       });
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -925,7 +927,58 @@ export function AdminPengaturan() {
         </TabsContent>
 
         {/* Tab 4: Keamanan */}
-        <TabsContent value="keamanan">
+        <TabsContent value="keamanan" className="space-y-8">
+          {/* Face Recognition Settings */}
+          <Card className="border-none shadow-sm bg-card/50 max-w-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <User className="w-5 h-5 text-primary" />
+                Pengenalan Wajah
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="face_threshold">Threshold Kecocokan Wajah</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Tingkat kecocokan minimum untuk mengenali wajah. Semakin tinggi = semakin ketat (40-80%).
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="face_threshold"
+                      type="range"
+                      min={0.40}
+                      max={0.80}
+                      step={0.05}
+                      value={formData.face_similarity_threshold}
+                      onChange={(e) => setFormData({ ...formData, face_similarity_threshold: Number(e.target.value) })}
+                      className="flex-1"
+                    />
+                    <span className="text-lg font-semibold min-w-[60px] text-right">
+                      {Math.round(formData.face_similarity_threshold * 100)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>Longgar (40%)</span>
+                    <span>Ketat (80%)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button onClick={handleSave} disabled={isSaving} className="min-w-[140px]">
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Simpan Threshold
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Password Change Card */}
           <Card className="border-none shadow-sm bg-card/50 max-w-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">

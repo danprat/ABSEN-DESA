@@ -13,6 +13,7 @@ class WorkSettingsResponse(BaseModel):
     late_threshold_minutes: int
     check_out_start: time
     min_work_hours: float
+    face_similarity_threshold: float
     updated_at: datetime
 
     class Config:
@@ -28,6 +29,7 @@ class WorkSettingsUpdate(BaseModel):
     late_threshold_minutes: Optional[int] = None
     check_out_start: Optional[time] = None
     min_work_hours: Optional[float] = None
+    face_similarity_threshold: Optional[float] = None
 
 
 class DailyScheduleResponse(BaseModel):

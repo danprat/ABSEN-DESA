@@ -52,7 +52,12 @@ async def upload_face(
     with open(filepath, "wb") as f:
         f.write(image_data)
     
-    embedding = face_recognition_service.generate_embedding(image_data)
+    # Use CNN model and num_jitters=5 for registration (more accurate embeddings)
+    embedding = face_recognition_service.generate_embedding(
+        image_data, 
+        use_cnn=True,      # Better face detection for registration
+        num_jitters=5      # More stable embeddings
+    )
     
     existing_count = db.query(FaceEmbedding).filter(
         FaceEmbedding.employee_id == employee_id
@@ -67,6 +72,9 @@ async def upload_face(
     db.add(face_embedding)
     db.commit()
     db.refresh(face_embedding)
+    
+    # Invalidate cache after adding new face
+    face_recognition_service.invalidate_cache()
     
     return FaceUploadResponse(
         id=face_embedding.id,
@@ -115,3 +123,6 @@ def delete_face(
     
     db.delete(face)
     db.commit()
+    
+    # Invalidate cache after deleting face
+    face_recognition_service.invalidate_cache()

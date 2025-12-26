@@ -123,6 +123,7 @@ export interface BackendWorkSettings {
   late_threshold_minutes: number;
   check_out_start: string;
   min_work_hours: number;
+  face_similarity_threshold: number;
   updated_at: string;
 }
 
@@ -422,6 +423,7 @@ export const api = {
         late_threshold_minutes: number;
         check_out_start: string;
         min_work_hours: number;
+        face_similarity_threshold: number;
       }>): Promise<BackendWorkSettings> => {
         const response = await apiClient.patch<BackendWorkSettings>('/api/v1/admin/settings', data);
         return response.data;

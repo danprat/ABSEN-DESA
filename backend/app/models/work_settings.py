@@ -16,4 +16,5 @@ class WorkSettings(Base):
     late_threshold_minutes = Column(Integer, nullable=False, default=15)
     check_out_start = Column(Time, nullable=False, default=time(16, 0))
     min_work_hours = Column(Float, nullable=False, default=8.0)
+    face_similarity_threshold = Column(Float, nullable=False, default=0.5)  # 0.3-0.7, higher = stricter
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

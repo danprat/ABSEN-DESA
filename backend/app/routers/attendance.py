@@ -44,7 +44,13 @@ async def recognize_face_only(
             detail="Wajah tidak terdeteksi"
         )
 
-    employee, confidence = face_recognition_service.find_matching_employee(image_data, db)
+    # Get face recognition threshold from settings
+    settings = attendance_service.get_work_settings(db)
+    threshold = getattr(settings, 'face_similarity_threshold', 0.5)
+    
+    employee, confidence = face_recognition_service.find_matching_employee(
+        image_data, db, threshold=threshold
+    )
 
     if not employee:
         raise HTTPException(

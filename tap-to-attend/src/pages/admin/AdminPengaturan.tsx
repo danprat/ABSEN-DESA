@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Save, Clock, Calendar, Building2, User, Loader2, Plus, Trash2, Lock, Upload, RefreshCw, Undo2 } from 'lucide-react';
+import { Save, Clock, Calendar, Building2, User, Loader2, Plus, Trash2, Lock, Upload, RefreshCw, Undo2, ScanFace } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +46,7 @@ export function AdminPengaturan() {
     village_name: '',
     officer_name: '',
     late_threshold_minutes: 15,
+    face_similarity_threshold: 0.5,
   });
 
   const fetchData = async () => {
@@ -64,6 +65,7 @@ export function AdminPengaturan() {
         village_name: settingsData.village_name,
         officer_name: settingsData.officer_name || '',
         late_threshold_minutes: settingsData.late_threshold_minutes,
+        face_similarity_threshold: settingsData.face_similarity_threshold || 0.5,
       });
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -457,6 +459,92 @@ export function AdminPengaturan() {
                     className="max-w-[150px]"
                   />
                 </div>
+                <div className="flex items-end">
+                  <Button onClick={handleSave} disabled={isSaving} className="min-w-[100px]">
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Simpan
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pengaturan Face Recognition */}
+          <Card className="border-none shadow-sm bg-card/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <ScanFace className="w-5 h-5 text-primary" />
+                Pengaturan Pengenalan Wajah
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-8 items-start justify-between">
+                <div className="space-y-4 max-w-lg w-full">
+                  <div className="space-y-2">
+                    <Label htmlFor="face_threshold">Tingkat Kemiripan Wajah</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Semakin tinggi nilai, semakin ketat pencocokan wajah. Nilai rendah = lebih toleran (mudah dikenali), nilai tinggi = lebih ketat (harus sangat mirip).
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Toleran</span>
+                      <span className="font-medium text-lg">{Math.round(formData.face_similarity_threshold * 100)}%</span>
+                      <span className="text-muted-foreground">Ketat</span>
+                    </div>
+                    <input
+                      id="face_threshold"
+                      type="range"
+                      min="30"
+                      max="70"
+                      step="5"
+                      value={formData.face_similarity_threshold * 100}
+                      onChange={(e) => setFormData({ ...formData, face_similarity_threshold: Number(e.target.value) / 100 })}
+                      className="w-full h-2 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-lg appearance-none cursor-pointer accent-primary"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>30%</span>
+                      <span>50% (Default)</span>
+                      <span>70%</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-muted/50 border">
+                    <p className="text-sm">
+                      {formData.face_similarity_threshold <= 0.35 && (
+                        <span className="text-green-600 dark:text-green-400">
+                          <strong>Sangat Toleran:</strong> Kemungkinan false positive tinggi, cocok untuk testing.
+                        </span>
+                      )}
+                      {formData.face_similarity_threshold > 0.35 && formData.face_similarity_threshold <= 0.45 && (
+                        <span className="text-yellow-600 dark:text-yellow-400">
+                          <strong>Toleran:</strong> Pengenalan lebih mudah, risiko false positive sedang.
+                        </span>
+                      )}
+                      {formData.face_similarity_threshold > 0.45 && formData.face_similarity_threshold <= 0.55 && (
+                        <span className="text-blue-600 dark:text-blue-400">
+                          <strong>Seimbang:</strong> Keseimbangan antara akurasi dan kemudahan pengenalan.
+                        </span>
+                      )}
+                      {formData.face_similarity_threshold > 0.55 && formData.face_similarity_threshold <= 0.65 && (
+                        <span className="text-orange-600 dark:text-orange-400">
+                          <strong>Ketat:</strong> Pengenalan lebih akurat, mungkin perlu posisi wajah yang tepat.
+                        </span>
+                      )}
+                      {formData.face_similarity_threshold > 0.65 && (
+                        <span className="text-red-600 dark:text-red-400">
+                          <strong>Sangat Ketat:</strong> Akurasi maksimal, kemungkinan gagal dikenali lebih tinggi.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="flex items-end">
                   <Button onClick={handleSave} disabled={isSaving} className="min-w-[100px]">
                     {isSaving ? (

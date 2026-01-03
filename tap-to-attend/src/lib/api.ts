@@ -507,7 +507,173 @@ export const api = {
         return response.data;
       },
     },
+
+    guestBook: {
+      list: async (params?: {
+        start_date?: string;
+        end_date?: string;
+        search?: string;
+        page?: number;
+        per_page?: number;
+      }): Promise<BackendGuestBookListResponse> => {
+        const response = await apiClient.get<BackendGuestBookListResponse>('/api/v1/admin/guest-book', { params });
+        return response.data;
+      },
+
+      export: async (params?: {
+        start_date?: string;
+        end_date?: string;
+      }): Promise<Blob> => {
+        const response = await apiClient.get('/api/v1/admin/guest-book/export', {
+          params,
+          responseType: 'blob',
+        });
+        return response.data;
+      },
+
+      delete: async (id: number): Promise<void> => {
+        await apiClient.delete(`/api/v1/admin/guest-book/${id}`);
+      },
+    },
+
+    survey: {
+      // Service Types Management
+      serviceTypes: {
+        list: async (): Promise<BackendServiceType[]> => {
+          const response = await apiClient.get<BackendServiceType[]>('/api/v1/admin/survey/service-types');
+          return response.data;
+        },
+
+        create: async (data: { name: string }): Promise<BackendServiceType> => {
+          const response = await apiClient.post<BackendServiceType>('/api/v1/admin/survey/service-types', data);
+          return response.data;
+        },
+
+        update: async (id: number, data: { name?: string; is_active?: boolean }): Promise<BackendServiceType> => {
+          const response = await apiClient.patch<BackendServiceType>(`/api/v1/admin/survey/service-types/${id}`, data);
+          return response.data;
+        },
+
+        delete: async (id: number): Promise<void> => {
+          await apiClient.delete(`/api/v1/admin/survey/service-types/${id}`);
+        },
+      },
+
+      // Survey Questions Management
+      questions: {
+        list: async (includeInactive?: boolean): Promise<BackendSurveyQuestion[]> => {
+          const response = await apiClient.get<BackendSurveyQuestion[]>('/api/v1/admin/survey/questions', {
+            params: { include_inactive: includeInactive },
+          });
+          return response.data;
+        },
+
+        create: async (data: {
+          question_text: string;
+          question_type: 'rating' | 'text' | 'multiple_choice';
+          options?: string[];
+          is_required?: boolean;
+        }): Promise<BackendSurveyQuestion> => {
+          const response = await apiClient.post<BackendSurveyQuestion>('/api/v1/admin/survey/questions', data);
+          return response.data;
+        },
+
+        update: async (id: number, data: {
+          question_text?: string;
+          options?: string[];
+          is_required?: boolean;
+          is_active?: boolean;
+          order?: number;
+        }): Promise<BackendSurveyQuestion> => {
+          const response = await apiClient.patch<BackendSurveyQuestion>(`/api/v1/admin/survey/questions/${id}`, data);
+          return response.data;
+        },
+
+        reorder: async (questionIds: number[]): Promise<void> => {
+          await apiClient.post('/api/v1/admin/survey/questions/reorder', { question_ids: questionIds });
+        },
+
+        delete: async (id: number): Promise<void> => {
+          await apiClient.delete(`/api/v1/admin/survey/questions/${id}`);
+        },
+      },
+
+      // Survey Responses
+      responses: {
+        list: async (params?: {
+          service_type_id?: number;
+          start_date?: string;
+          end_date?: string;
+          page?: number;
+          per_page?: number;
+        }): Promise<BackendSurveyResponseList> => {
+          const response = await apiClient.get<BackendSurveyResponseList>('/api/v1/admin/survey/responses', { params });
+          return response.data;
+        },
+
+        stats: async (params?: {
+          start_date?: string;
+          end_date?: string;
+          service_type_id?: number;
+        }): Promise<BackendSurveyStats> => {
+          const response = await apiClient.get<BackendSurveyStats>('/api/v1/admin/survey/stats', { params });
+          return response.data;
+        },
+
+        export: async (params?: {
+          start_date?: string;
+          end_date?: string;
+          service_type_id?: number;
+        }): Promise<Blob> => {
+          const response = await apiClient.get('/api/v1/admin/survey/export', {
+            params,
+            responseType: 'blob',
+          });
+          return response.data;
+        },
+      },
+    },
+  },
+
+  // Public Guest Book endpoint
+  guestBook: {
+    submit: async (data: {
+      name: string;
+      institution: string;
+      purpose: string;
+      visit_date: string;
+    }): Promise<{ message: string; id: number }> => {
+      const response = await apiClient.post<{ message: string; id: number }>('/api/v1/guest-book', data);
+      return response.data;
+    },
+  },
+
+  // Public Survey endpoints
+  survey: {
+    getServiceTypes: async (): Promise<BackendServiceType[]> => {
+      const response = await apiClient.get<BackendServiceType[]>('/api/v1/survey/service-types');
+      return response.data;
+    },
+
+    getQuestions: async (): Promise<BackendSurveyQuestion[]> => {
+      const response = await apiClient.get<BackendSurveyQuestion[]>('/api/v1/survey/questions');
+      return response.data;
+    },
+
+    submit: async (data: {
+      service_type_id: number;
+      filled_by: 'sendiri' | 'diwakilkan';
+      responses: Record<number, string>;
+      feedback?: string;
+    }): Promise<{ message: string; id: number }> => {
+      const response = await apiClient.post<{ message: string; id: number }>('/api/v1/survey', data);
+      return response.data;
+    },
   },
 };
+
+// Import types for API
+import type { BackendGuestBookListResponse } from '@/types/guestbook';
+import type { BackendServiceType, BackendSurveyQuestion, BackendSurveyResponseList, BackendSurveyStats } from '@/types/survey';
 
 export default api;

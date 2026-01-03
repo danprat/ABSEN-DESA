@@ -11,7 +11,9 @@ import {
   Menu,
   X,
   LogOut,
-  Home
+  Home,
+  BookOpen,
+  Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,6 +26,8 @@ const navItems = [
   { path: '/admin/pegawai', icon: Users, label: 'Pegawai' },
   { path: '/admin/absensi', icon: CalendarCheck, label: 'Absensi Harian' },
   { path: '/admin/riwayat', icon: History, label: 'Riwayat & Laporan' },
+  { path: '/admin/buku-tamu', icon: BookOpen, label: 'Buku Tamu' },
+  { path: '/admin/survey', icon: Star, label: 'Survey Kepuasan' },
   { path: '/admin/pengaturan', icon: Settings, label: 'Pengaturan' },
   { path: '/admin/log', icon: FileText, label: 'Log Aktivitas' },
 ];

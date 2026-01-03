@@ -1,4 +1,5 @@
-import { Camera, List } from 'lucide-react';
+import { Camera, List, BookOpen, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface BottomNavProps {
   activeTab: 'camera' | 'list';
@@ -12,7 +13,8 @@ export function BottomNav({ activeTab, onTabChange, attendanceCount }: BottomNav
 
   return (
     <nav className="bg-card border-t border-border px-4 py-3">
-      <div className="flex items-center justify-center gap-2 max-w-sm mx-auto">
+      <div className="flex items-center justify-center gap-2 max-w-lg mx-auto">
+        {/* Main tabs - Absen & Daftar */}
         <button
           onClick={() => onTabChange('camera')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl transition-all duration-200 ${
@@ -43,6 +45,26 @@ export function BottomNav({ activeTab, onTabChange, attendanceCount }: BottomNav
             {totalPresent}/{total}
           </span>
         </button>
+
+        {/* Divider */}
+        <div className="h-8 w-px bg-border mx-1" />
+
+        {/* Secondary navigation - Buku Tamu & Survey */}
+        <Link
+          to="/buku-tamu"
+          className="flex flex-col items-center justify-center py-2 px-3 rounded-xl text-muted-foreground hover:bg-secondary transition-all duration-200"
+        >
+          <BookOpen className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5">Tamu</span>
+        </Link>
+
+        <Link
+          to="/survey"
+          className="flex flex-col items-center justify-center py-2 px-3 rounded-xl text-muted-foreground hover:bg-secondary transition-all duration-200"
+        >
+          <Star className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5">Survey</span>
+        </Link>
       </div>
     </nav>
   );

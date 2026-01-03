@@ -5,8 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "./hooks/useAuth";
 import Index from "./pages/Index";
+import Absen from "./pages/Absen";
+import DaftarHadir from "./pages/DaftarHadir";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import BukuTamu from "./pages/BukuTamu";
+import Survey from "./pages/Survey";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { AdminPegawai } from "./pages/admin/AdminPegawai";
@@ -14,6 +18,8 @@ import { AdminAbsensi } from "./pages/admin/AdminAbsensi";
 import { AdminRiwayat } from "./pages/admin/AdminRiwayat";
 import { AdminPengaturan } from "./pages/admin/AdminPengaturan";
 import { AdminLog } from "./pages/admin/AdminLog";
+import { AdminBukuTamu } from "./pages/admin/AdminBukuTamu";
+import { AdminSurvey } from "./pages/admin/AdminSurvey";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +33,11 @@ const App = () => (
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
+            <Route path="/absen" element={<Absen />} />
+            <Route path="/daftar-hadir" element={<DaftarHadir />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/buku-tamu" element={<BukuTamu />} />
+            <Route path="/survey" element={<Survey />} />
             
             {/* Protected Admin Routes */}
             <Route
@@ -42,6 +52,8 @@ const App = () => (
               <Route path="pegawai" element={<AdminPegawai />} />
               <Route path="absensi" element={<AdminAbsensi />} />
               <Route path="riwayat" element={<AdminRiwayat />} />
+              <Route path="buku-tamu" element={<AdminBukuTamu />} />
+              <Route path="survey" element={<AdminSurvey />} />
               <Route path="pengaturan" element={<AdminPengaturan />} />
               <Route path="log" element={<AdminLog />} />
             </Route>

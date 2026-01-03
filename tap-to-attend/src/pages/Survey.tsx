@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, ArrowLeft, ArrowRight, Send, Loader2, CheckCircle, Home, ClipboardList, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -98,6 +98,7 @@ export function Survey() {
   const [currentStep, setCurrentStep] = useState(0);
   const [serviceTypes, setServiceTypes] = useState<BackendServiceType[]>([]);
   const [questions, setQuestions] = useState<BackendSurveyQuestion[]>([]);
+  const feedbackInputRef = useRef<HTMLTextAreaElement>(null);
 
   const [formData, setFormData] = useState<{
     service_type_id: number | null;
@@ -113,6 +114,18 @@ export function Survey() {
 
   // Calculate total steps: Service Type + Filled By + Questions + Feedback
   const totalSteps = 2 + questions.length + 1;
+
+  // Auto-focus feedback textarea on last step
+  useEffect(() => {
+    const isLastStep = currentStep === totalSteps - 1;
+    if (isLastStep && feedbackInputRef.current) {
+      // Wait for AnimatePresence transition (duration: 0.2s) plus buffer
+      const timer = setTimeout(() => {
+        feedbackInputRef.current?.focus();
+      }, 250); // 200ms animation + 50ms buffer
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, totalSteps]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -235,7 +248,7 @@ export function Survey() {
   // Loading State
   if (isLoading) {
     return (
-      <div className="h-screen flex flex-col bg-gradient-to-br from-amber-50 via-background to-amber-50/30 dark:from-amber-950/20 dark:via-background dark:to-amber-950/10 overflow-hidden">
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-background to-amber-50/30 dark:from-amber-950/20 dark:via-background dark:to-amber-950/10">
         <Header villageName={settings.villageName} officerName={settings.officerName} logoUrl={settings.logoUrl} />
         <main className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
@@ -250,9 +263,9 @@ export function Survey() {
   // Success State - Kiosk optimized
   if (isSuccess) {
     return (
-      <div className="h-screen flex flex-col bg-gradient-to-br from-amber-50 via-background to-amber-50/30 dark:from-amber-950/20 dark:via-background dark:to-amber-950/10 overflow-hidden">
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-background to-amber-50/30 dark:from-amber-950/20 dark:via-background dark:to-amber-950/10">
         <Header villageName={settings.villageName} officerName={settings.officerName} logoUrl={settings.logoUrl} />
-        <main className="flex-1 flex items-center justify-center p-6">
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -299,13 +312,13 @@ export function Survey() {
     // Step 0: Service Type Selection
     if (currentStep === 0) {
       return (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="text-center space-y-1">
-            <div className="w-14 h-14 mx-auto mb-2 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
-              <ClipboardList className="w-7 h-7 text-amber-600" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-1 sm:mb-2 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
+              <ClipboardList className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600" />
             </div>
-            <h2 className="text-xl font-bold">Jenis Layanan</h2>
-            <p className="text-sm text-muted-foreground">Pilih layanan yang Anda terima</p>
+            <h2 className="text-lg sm:text-xl font-bold">Jenis Layanan</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">Pilih layanan yang Anda terima</p>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -333,39 +346,39 @@ export function Survey() {
     // Step 1: Filled By Selection
     if (currentStep === 1) {
       return (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="text-center space-y-1">
-            <div className="w-14 h-14 mx-auto mb-2 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
-              <User className="w-7 h-7 text-amber-600" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-1 sm:mb-2 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
+              <User className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600" />
             </div>
-            <h2 className="text-xl font-bold">Pengisi Survey</h2>
-            <p className="text-sm text-muted-foreground">Siapa yang mengisi survey ini?</p>
+            <h2 className="text-lg sm:text-xl font-bold">Pengisi Survey</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">Siapa yang mengisi survey ini?</p>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               type="button"
               onClick={() => setFormData({ ...formData, filled_by: 'sendiri' })}
-              className={`p-8 rounded-2xl border-2 text-center transition-all duration-200 ${
+              className={`p-4 sm:p-6 md:p-8 rounded-2xl border-2 text-center transition-all duration-200 ${
                 formData.filled_by === 'sendiri'
                   ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg shadow-amber-500/20'
                   : 'border-muted hover:border-amber-300 hover:bg-muted/50'
               }`}
             >
-              <span className="text-5xl mb-3 block">👤</span>
-              <span className="text-xl font-medium">Diri Sendiri</span>
+              <span className="text-4xl sm:text-5xl mb-2 sm:mb-3 block">👤</span>
+              <span className="text-base sm:text-lg md:text-xl font-medium">Diri Sendiri</span>
             </button>
             <button
               type="button"
               onClick={() => setFormData({ ...formData, filled_by: 'diwakilkan' })}
-              className={`p-8 rounded-2xl border-2 text-center transition-all duration-200 ${
+              className={`p-4 sm:p-6 md:p-8 rounded-2xl border-2 text-center transition-all duration-200 ${
                 formData.filled_by === 'diwakilkan'
                   ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg shadow-amber-500/20'
                   : 'border-muted hover:border-amber-300 hover:bg-muted/50'
               }`}
             >
-              <span className="text-5xl mb-3 block">👥</span>
-              <span className="text-xl font-medium">Diwakilkan</span>
+              <span className="text-4xl sm:text-5xl mb-2 sm:mb-3 block">👥</span>
+              <span className="text-base sm:text-lg md:text-xl font-medium">Diwakilkan</span>
             </button>
           </div>
         </div>
@@ -377,32 +390,32 @@ export function Survey() {
       const question = questions[currentStep - 2];
       
       return (
-        <div className="space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
-              <Star className="w-8 h-8 text-amber-600" />
+        <div className="space-y-4 sm:space-y-6">
+          <div className="text-center space-y-1 sm:space-y-2">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 md:mb-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
+              <Star className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-amber-600" />
             </div>
-            <h2 className="text-xl md:text-2xl font-bold leading-tight">
+            <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold leading-tight px-2">
               {question.question_text}
               {question.is_required && <span className="text-red-500 ml-1">*</span>}
             </h2>
           </div>
 
           {question.question_type === 'rating' && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
               {satisfactionOptions.map((rating) => (
                 <button
                   key={rating}
                   type="button"
                   onClick={() => handleResponseChange(question.id, rating)}
-                  className={`p-6 rounded-2xl border-2 text-center transition-all duration-200 ${
+                  className={`p-3 sm:p-4 md:p-6 rounded-2xl border-2 text-center transition-all duration-200 ${
                     formData.responses[question.id] === rating
                       ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg shadow-amber-500/20 scale-105'
                       : 'border-muted hover:border-amber-300 hover:bg-muted/50'
                   }`}
                 >
-                  <span className="text-5xl md:text-6xl mb-3 block">{SATISFACTION_ICONS[rating]}</span>
-                  <span className="text-sm md:text-base font-medium leading-tight block">
+                  <span className="text-4xl sm:text-5xl md:text-6xl mb-2 sm:mb-3 block">{SATISFACTION_ICONS[rating]}</span>
+                  <span className="text-xs sm:text-sm md:text-base font-medium leading-tight block">
                     {SATISFACTION_LABELS[rating]}
                   </span>
                 </button>
@@ -444,21 +457,22 @@ export function Survey() {
 
     // Feedback Step (Last)
     return (
-      <div className="space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
-            <span className="text-3xl">💬</span>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="text-center space-y-1 sm:space-y-2">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 md:mb-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
+            <span className="text-2xl sm:text-3xl">💬</span>
           </div>
-          <h2 className="text-2xl font-bold">Saran & Masukan</h2>
-          <p className="text-muted-foreground">Bagikan pendapat Anda (opsional)</p>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Saran & Masukan</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">Bagikan pendapat Anda (opsional)</p>
         </div>
         
         <Textarea
+          ref={feedbackInputRef}
           value={formData.feedback}
           onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
           placeholder="Tuliskan saran atau masukan Anda untuk peningkatan layanan..."
-          rows={5}
-          className="text-xl p-6 rounded-2xl border-2 resize-none focus:border-amber-500"
+          rows={4}
+          className="text-base sm:text-lg md:text-xl p-4 sm:p-5 md:p-6 rounded-2xl border-2 resize-none focus:border-amber-500"
         />
       </div>
     );
@@ -467,24 +481,24 @@ export function Survey() {
   const isLastStep = currentStep === totalSteps - 1;
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-amber-50 via-background to-amber-50/30 dark:from-amber-950/20 dark:via-background dark:to-amber-950/10 overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-background to-amber-50/30 dark:from-amber-950/20 dark:via-background dark:to-amber-950/10">
       <Header villageName={settings.villageName} officerName={settings.officerName} logoUrl={settings.logoUrl} />
-      
-      <main className="flex-1 flex flex-col px-4 py-3 overflow-hidden">
-        <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col min-h-0">
+
+      <main className="flex-1 flex flex-col px-3 sm:px-4 py-2 sm:py-3">
+        <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col">
           {/* Header */}
-          <div className="text-center mb-2">
-            <motion.div 
+          <div className="text-center mb-1 sm:mb-2">
+            <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring" }}
-              className="w-14 h-14 mx-auto mb-2 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/20"
+              className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-1 sm:mb-2 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/20"
             >
-              <Star className="w-7 h-7 text-white" />
+              <Star className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </motion.div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">Survey Kepuasan</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Survey Kepuasan</h1>
             {USE_MOCK_DATA && (
-              <p className="text-xs text-amber-600 font-medium mt-1">
+              <p className="text-xs text-amber-600 font-medium mt-0.5 sm:mt-1">
                 Mode Demo • Data tidak disimpan
               </p>
             )}
@@ -494,7 +508,7 @@ export function Survey() {
           <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
 
           {/* Content Card */}
-          <div className="flex-1 bg-card/80 backdrop-blur-sm rounded-3xl shadow-2xl border-0 p-4 md:p-6 flex flex-col min-h-0 overflow-y-auto">
+          <div className="flex-1 bg-card/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl border-0 p-3 sm:p-4 md:p-6 flex flex-col overflow-y-auto">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}
@@ -509,14 +523,14 @@ export function Survey() {
             </AnimatePresence>
 
             {/* Navigation Buttons */}
-            <div className="flex gap-3 mt-6 pt-4 border-t">
+            <div className="flex gap-2 sm:gap-3 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
               {currentStep === 0 ? (
                 <Link to="/" className="flex-1">
                   <Button
                     type="button"
                     variant="outline"
                     size="lg"
-                    className="w-full h-12 text-lg rounded-xl gap-2"
+                    className="w-full h-10 sm:h-12 text-base sm:text-lg rounded-xl gap-2"
                   >
                     <ArrowLeft className="w-5 h-5" />
                     Kembali
@@ -528,7 +542,7 @@ export function Survey() {
                   variant="outline"
                   size="lg"
                   onClick={handlePrev}
-                  className="flex-1 h-12 text-lg rounded-xl gap-2"
+                  className="flex-1 h-10 sm:h-12 text-base sm:text-lg rounded-xl gap-2"
                 >
                   <ArrowLeft className="w-5 h-5" />
                   Sebelumnya
@@ -541,7 +555,7 @@ export function Survey() {
                   size="lg"
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="flex-1 h-12 text-lg rounded-xl gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-lg shadow-amber-500/30"
+                  className="flex-1 h-10 sm:h-12 text-base sm:text-lg rounded-xl gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-lg shadow-amber-500/30"
                 >
                   {isSubmitting ? (
                     <>
@@ -561,7 +575,7 @@ export function Survey() {
                   size="lg"
                   onClick={handleNext}
                   disabled={!canProceed()}
-                  className="flex-1 h-12 text-lg rounded-xl gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-lg shadow-amber-500/30 disabled:opacity-50"
+                  className="flex-1 h-10 sm:h-12 text-base sm:text-lg rounded-xl gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-lg shadow-amber-500/30 disabled:opacity-50"
                 >
                   Selanjutnya
                   <ArrowRight className="w-6 h-6" />

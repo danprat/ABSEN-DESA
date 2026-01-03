@@ -6,6 +6,8 @@ from app.models.work_settings import WorkSettings
 from app.models.holiday import Holiday
 from app.models.audit_log import AuditLog, AuditAction, EntityType
 from app.models.daily_schedule import DailyWorkSchedule, DEFAULT_SCHEDULES
+from app.models.guestbook import GuestBookEntry
+from app.models.survey import ServiceType, SurveyQuestion, SurveyResponse, FilledByType, QuestionType
 
 __all__ = [
     "Admin",
@@ -20,4 +22,10 @@ __all__ = [
     "EntityType",
     "DailyWorkSchedule",
     "DEFAULT_SCHEDULES",
+    "GuestBookEntry",
+    "ServiceType",
+    "SurveyQuestion",
+    "SurveyResponse",
+    "FilledByType",
+    "QuestionType",
 ]

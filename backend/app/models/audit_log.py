@@ -9,6 +9,8 @@ class AuditAction(str, enum.Enum):
     UPDATE = "update"
     DELETE = "delete"
     CORRECT = "correct"
+    REORDER = "reorder"
+    EXPORT = "export"
 
 
 class EntityType(str, enum.Enum):
@@ -18,6 +20,10 @@ class EntityType(str, enum.Enum):
     HOLIDAY = "holiday"
     DAILY_SCHEDULE = "daily_schedule"
     ADMIN = "admin"
+    SERVICE_TYPE = "service_type"
+    SURVEY_QUESTION = "survey_question"
+    SURVEY_RESPONSE = "survey_response"
+    GUESTBOOK = "guestbook"
 
 
 class AuditLog(Base):

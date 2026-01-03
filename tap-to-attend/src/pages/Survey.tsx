@@ -17,56 +17,6 @@ import {
   SATISFACTION_ICONS,
 } from '@/types/survey';
 
-// Mock data untuk testing UI
-const MOCK_SERVICE_TYPES: BackendServiceType[] = [
-  { id: 1, name: 'Pelayanan Administrasi Kependudukan', is_active: true, created_at: new Date().toISOString() },
-  { id: 2, name: 'Pelayanan Surat Menyurat', is_active: true, created_at: new Date().toISOString() },
-  { id: 3, name: 'Pelayanan Perizinan', is_active: true, created_at: new Date().toISOString() },
-  { id: 4, name: 'Pelayanan Kesehatan', is_active: true, created_at: new Date().toISOString() },
-];
-
-const MOCK_QUESTIONS: BackendSurveyQuestion[] = [
-  { 
-    id: 1, 
-    question_text: 'Bagaimana kecepatan pelayanan yang Anda terima?', 
-    question_type: 'rating',
-    is_required: true,
-    is_active: true,
-    order: 1,
-    created_at: new Date().toISOString()
-  },
-  { 
-    id: 2, 
-    question_text: 'Bagaimana keramahan petugas dalam melayani Anda?', 
-    question_type: 'rating',
-    is_required: true,
-    is_active: true,
-    order: 2,
-    created_at: new Date().toISOString()
-  },
-  { 
-    id: 3, 
-    question_text: 'Apakah fasilitas pelayanan sudah memadai?', 
-    question_type: 'rating',
-    is_required: true,
-    is_active: true,
-    order: 3,
-    created_at: new Date().toISOString()
-  },
-  { 
-    id: 4, 
-    question_text: 'Bagaimana kebersihan dan kenyamanan ruang pelayanan?', 
-    question_type: 'rating',
-    is_required: false,
-    is_active: true,
-    order: 4,
-    created_at: new Date().toISOString()
-  },
-];
-
-// Flag untuk menggunakan mock data
-const USE_MOCK_DATA = true;
-
 // Step indicator component
 const StepIndicator = ({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) => (
   <div className="flex items-center justify-center gap-2 mb-4">
@@ -130,19 +80,12 @@ export function Survey() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        if (USE_MOCK_DATA) {
-          // Simulasi loading
-          await new Promise(resolve => setTimeout(resolve, 500));
-          setServiceTypes(MOCK_SERVICE_TYPES);
-          setQuestions(MOCK_QUESTIONS);
-        } else {
-          const [typesData, questionsData] = await Promise.all([
-            api.survey.getServiceTypes(),
-            api.survey.getQuestions(),
-          ]);
-          setServiceTypes(typesData.filter(t => t.is_active));
-          setQuestions(questionsData.filter(q => q.is_active).sort((a, b) => a.order - b.order));
-        }
+        const [typesData, questionsData] = await Promise.all([
+          api.survey.getServiceTypes(),
+          api.survey.getQuestions(),
+        ]);
+        setServiceTypes(typesData.filter(t => t.is_active));
+        setQuestions(questionsData.filter(q => q.is_active).sort((a, b) => a.order - b.order));
       } catch (error) {
         console.error('Failed to load survey data:', error);
         toast.error('Gagal memuat data survey');
@@ -222,21 +165,14 @@ export function Survey() {
 
     setIsSubmitting(true);
     try {
-      if (USE_MOCK_DATA) {
-        // Simulasi submit
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setIsSuccess(true);
-        toast.success('Survey berhasil dikirim!');
-      } else {
-        await api.survey.submit({
-          service_type_id: formData.service_type_id,
-          filled_by: formData.filled_by,
-          responses: formData.responses,
-          feedback: formData.feedback || undefined,
-        });
-        setIsSuccess(true);
-        toast.success('Survey berhasil dikirim!');
-      }
+      await api.survey.submit({
+        service_type_id: formData.service_type_id,
+        filled_by: formData.filled_by,
+        responses: formData.responses,
+        feedback: formData.feedback || undefined,
+      });
+      setIsSuccess(true);
+      toast.success('Survey berhasil dikirim!');
     } catch (error) {
       console.error('Failed to submit survey:', error);
       toast.error('Gagal mengirim survey. Silakan coba lagi.');
@@ -497,11 +433,6 @@ export function Survey() {
               <Star className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </motion.div>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Survey Kepuasan</h1>
-            {USE_MOCK_DATA && (
-              <p className="text-xs text-amber-600 font-medium mt-0.5 sm:mt-1">
-                Mode Demo • Data tidak disimpan
-              </p>
-            )}
           </div>
 
           {/* Step Indicator */}

@@ -11,8 +11,19 @@ import { useSettings } from '@/hooks/useSettings';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
-// Mock data flag
-const USE_MOCK_DATA = true;
+// Common institution suggestions for autocomplete
+const INSTITUTION_SUGGESTIONS = [
+  'Masyarakat Umum',
+  'Dinas Pendidikan',
+  'Dinas Kesehatan',
+  'Kecamatan',
+  'Kelurahan',
+  'Sekolah',
+  'Universitas',
+  'Perusahaan Swasta',
+  'Lembaga Pemerintah',
+  'Lainnya',
+];
 
 // Step indicator component
 const StepIndicator = ({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) => (
@@ -139,16 +150,9 @@ export function BukuTamu() {
 
     setIsSubmitting(true);
     try {
-      if (USE_MOCK_DATA) {
-        // Simulasi submit
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setIsSuccess(true);
-        toast.success('Data berhasil disimpan!');
-      } else {
-        await api.guestBook.submit(formData);
-        setIsSuccess(true);
-        toast.success('Data berhasil disimpan!');
-      }
+      await api.guestBook.submit(formData);
+      setIsSuccess(true);
+      toast.success('Data berhasil disimpan!');
     } catch (error) {
       console.error('Failed to submit guest book:', error);
       toast.error('Gagal menyimpan data. Silakan coba lagi.');
@@ -258,18 +262,43 @@ export function BukuTamu() {
               <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-600" />
             </div>
             <h2 className="text-lg sm:text-xl font-bold">Instansi / Asal</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">Dari mana Anda berasal?</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Ketik manual atau pilih dari saran</p>
           </div>
           
-          <div>
+          <div className="space-y-3">
+            {/* Manual Input */}
             <Input
               ref={institutionInputRef}
-              placeholder="Contoh: Dinas Pendidikan, Masyarakat Umum..."
+              placeholder="Ketik nama instansi..."
               value={formData.institution}
               onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
               className="h-12 sm:h-14 text-base sm:text-lg px-4 sm:px-5 rounded-xl border-2 focus:border-emerald-500 focus:ring-emerald-500/20 text-center"
               onKeyDown={(e) => e.key === 'Enter' && canProceed() && handleNext()}
             />
+            
+            {/* Suggestion Buttons */}
+            <div className="max-h-[240px] sm:max-h-[280px] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {INSTITUTION_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, institution: suggestion });
+                      // Focus input after selection for easy editing if needed
+                      setTimeout(() => institutionInputRef.current?.focus(), 100);
+                    }}
+                    className={`p-3 rounded-xl border-2 text-left transition-all duration-200 ${
+                      formData.institution === suggestion
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-lg shadow-emerald-500/20'
+                        : 'border-muted hover:border-emerald-300 hover:bg-muted/50'
+                    }`}
+                  >
+                    <span className="text-sm font-medium">{suggestion}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -404,11 +433,6 @@ export function BukuTamu() {
               <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </motion.div>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Buku Tamu</h1>
-            {USE_MOCK_DATA && (
-              <p className="text-xs text-emerald-600 font-medium mt-0.5 sm:mt-1">
-                Mode Demo • Data tidak disimpan
-              </p>
-            )}
           </div>
 
           {/* Step Indicator */}

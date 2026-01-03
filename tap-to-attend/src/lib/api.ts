@@ -540,8 +540,8 @@ export const api = {
       // Service Types Management
       serviceTypes: {
         list: async (): Promise<BackendServiceType[]> => {
-          const response = await apiClient.get<BackendServiceType[]>('/api/v1/admin/survey/service-types');
-          return response.data;
+          const response = await apiClient.get<{ items: BackendServiceType[]; total: number }>('/api/v1/admin/survey/service-types');
+          return response.data.items;
         },
 
         create: async (data: { name: string }): Promise<BackendServiceType> => {
@@ -562,10 +562,10 @@ export const api = {
       // Survey Questions Management
       questions: {
         list: async (includeInactive?: boolean): Promise<BackendSurveyQuestion[]> => {
-          const response = await apiClient.get<BackendSurveyQuestion[]>('/api/v1/admin/survey/questions', {
+          const response = await apiClient.get<{ items: BackendSurveyQuestion[]; total: number }>('/api/v1/admin/survey/questions', {
             params: { include_inactive: includeInactive },
           });
-          return response.data;
+          return response.data.items;
         },
 
         create: async (data: {
@@ -643,7 +643,7 @@ export const api = {
       purpose: string;
       visit_date: string;
     }): Promise<{ message: string; id: number }> => {
-      const response = await apiClient.post<{ message: string; id: number }>('/api/v1/guest-book', data);
+      const response = await apiClient.post<{ message: string; id: number }>('/api/v1/guestbook', data);
       return response.data;
     },
   },

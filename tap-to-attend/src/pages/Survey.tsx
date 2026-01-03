@@ -338,7 +338,7 @@ export function Survey() {
           </div>
 
           {question.question_type === 'rating' && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+            <div className="grid grid-cols-5 gap-2 sm:gap-3 md:gap-4">
               {satisfactionOptions.map((rating) => (
                 <button
                   key={rating}

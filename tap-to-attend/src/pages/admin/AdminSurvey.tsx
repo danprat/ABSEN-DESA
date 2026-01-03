@@ -90,9 +90,17 @@ const CustomDonutChart = ({ data }: { data: SatisfactionRating[] }) => {
   const radius = 80;
   const center = 100;
   
+  // Map rating to numeric score
+  const ratingScoreMap: Record<SatisfactionRating, number> = {
+    'sangat_puas': 4,
+    'puas': 3,
+    'cukup_puas': 2,
+    'tidak_puas': 1,
+  };
+  
   // Calculate average score
   const averageScore = total > 0 
-    ? (data.reduce((acc, curr) => acc + (curr.rating * curr.count), 0) / total).toFixed(1)
+    ? (data.reduce((acc, curr) => acc + (ratingScoreMap[curr.rating] * curr.count), 0) / total).toFixed(1)
     : "0.0";
 
   return (

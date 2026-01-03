@@ -92,10 +92,10 @@ const CustomDonutChart = ({ data }: { data: SatisfactionRating[] }) => {
   
   // Map rating to numeric score
   const ratingScoreMap: Record<SatisfactionRating, number> = {
-    'sangat_puas': 4,
-    'puas': 3,
-    'cukup_puas': 2,
-    'tidak_puas': 1,
+    'sangat_puas': 5,
+    'puas': 4,
+    'cukup_puas': 3,
+    'tidak_puas': 2,
   };
   
   // Calculate average score

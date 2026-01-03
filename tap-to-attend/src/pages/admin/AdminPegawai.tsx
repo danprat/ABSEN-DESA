@@ -70,6 +70,16 @@ export function AdminPegawai() {
 
   useEffect(() => {
     fetchEmployees();
+    
+    // Cleanup camera on unmount
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => {
+          track.stop();
+          console.log('Admin camera track stopped on unmount');
+        });
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -173,6 +183,7 @@ export function AdminPegawai() {
   const closeFaceDialog = () => {
     stopCamera();
     setFaceDialogOpen(false);
+    setSelectedEmployee(null);
   };
 
   const startCamera = async () => {
@@ -198,8 +209,14 @@ export function AdminPegawai() {
 
   const stopCamera = () => {
     if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop());
+      cameraStream.getTracks().forEach((track) => {
+        track.stop();
+        console.log('Admin camera track stopped');
+      });
       setCameraStream(null);
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setIsCameraActive(false);
   };

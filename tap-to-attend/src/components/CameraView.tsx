@@ -29,6 +29,7 @@ const STABILITY_FRAMES_REQUIRED = 5;
 export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
         await videoRef.current.play();
       }
 
+      streamRef.current = mediaStream;
       setStream(mediaStream);
       setCameraReady(true);
     } catch (error) {
@@ -78,12 +80,48 @@ export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
     startCamera();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      console.log('CameraView unmounting - stopping camera');
+      // Stop camera stream using ref (always has latest value)
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('Camera track stopped:', track.label);
+        });
+        streamRef.current = null;
       }
+      // Stop video element
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.pause();
+      }
+      // Clear intervals
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
+      if (detectionIntervalRef.current) {
+        clearInterval(detectionIntervalRef.current);
+        detectionIntervalRef.current = null;
+      }
+    };
+  }, [startCamera]);
+
+  // Additional cleanup on visibility change to ensure camera stops
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && streamRef.current) {
+        console.log('Page hidden - pausing camera');
+        streamRef.current.getTracks().forEach(track => track.enabled = false);
+      } else if (!document.hidden && streamRef.current) {
+        console.log('Page visible - resuming camera');
+        streamRef.current.getTracks().forEach(track => track.enabled = true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -291,11 +329,15 @@ export function CameraView({ onCapture, isPaused = false }: CameraViewProps) {
     };
 
     const interval = setInterval(runDetection, FACE_DETECTION_INTERVAL);
+    detectionIntervalRef.current = interval;
 
     return () => {
       clearInterval(interval);
       if (detectionIntervalRef.current) {
         clearInterval(detectionIntervalRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
       }
     };
   }, [cameraReady, scanning, isPaused, faceDetector, detectorLoading, faceStability, triggerAutoCapture]);

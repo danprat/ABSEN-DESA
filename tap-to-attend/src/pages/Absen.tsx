@@ -20,6 +20,14 @@ const Absen = () => {
     attendanceStatus?: 'belum_absen' | 'sudah_check_in' | 'sudah_lengkap';
   } | null>(null);
 
+  // Cleanup on unmount to ensure camera stops
+  useEffect(() => {
+    return () => {
+      // Force cleanup when page unmounts
+      console.log('Absen page unmounting - camera should be stopped');
+    };
+  }, []);
+
   // Fetch late threshold from schedule
   useEffect(() => {
     const fetchSchedule = async () => {

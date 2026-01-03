@@ -178,6 +178,12 @@ class AttendanceService:
             if attendance.check_out_at:
                 return attendance, f"Sudah absen pulang pukul {attendance.check_out_at.strftime('%H:%M')}"
             
+            # Check if 3 minutes have passed since check-in
+            time_diff = now - attendance.check_in_at
+            if time_diff.total_seconds() < 180:  # 180 seconds = 3 minutes
+                minutes_left = 3 - int(time_diff.total_seconds() / 60)
+                return None, f"Anda baru saja check-in. Harap tunggu {minutes_left} menit lagi untuk check-out."
+            
             attendance.check_out_at = now
             db.commit()
             db.refresh(attendance)

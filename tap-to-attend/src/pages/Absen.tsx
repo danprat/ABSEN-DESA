@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { CameraView } from '@/components/CameraView';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
 const Absen = () => {
+  const navigate = useNavigate();
   const { settings } = useSettings();
   const [lateThreshold, setLateThreshold] = useState('08:15');
   const [capturedEmployee, setCapturedEmployee] = useState<{
@@ -69,6 +70,13 @@ const Absen = () => {
       });
 
       setCapturedEmployee(null);
+
+      // Auto-redirect to daftar-hadir after check-in (not check-out)
+      if (capturedEmployee.attendanceStatus === 'belum_absen') {
+        setTimeout(() => {
+          navigate('/daftar-hadir');
+        }, 1500);
+      }
     } catch (error) {
       console.error('Failed to confirm attendance:', error);
       const axiosError = error as { response?: { data?: { detail?: string } } };

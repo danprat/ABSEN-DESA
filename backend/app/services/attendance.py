@@ -73,11 +73,9 @@ class AttendanceService:
         # Set check_out_end to 23:59:59 (end of day)
         check_out_end = time(23, 59, 59)
 
-        # If already checked in, allow checkout anytime after check_in_end until end of day
+        # If already checked in, allow checkout anytime
         if has_checked_in:
-            if current_time >= check_in_end and current_time <= check_out_end:
-                return "CHECK_OUT"
-            return None
+            return "CHECK_OUT"
 
         # For check-in: only during check-in window
         if check_in_start <= current_time < check_in_end:

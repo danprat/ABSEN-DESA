@@ -473,92 +473,6 @@ export function AdminPengaturan() {
             </CardContent>
           </Card>
 
-          {/* Pengaturan Face Recognition */}
-          <Card className="border-none shadow-sm bg-card/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <ScanFace className="w-5 h-5 text-primary" />
-                Pengaturan Pengenalan Wajah
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row gap-8 items-start justify-between">
-                <div className="space-y-4 max-w-lg w-full">
-                  <div className="space-y-2">
-                    <Label htmlFor="face_threshold">Tingkat Kemiripan Wajah</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Semakin tinggi nilai, semakin ketat pencocokan wajah. Nilai rendah = lebih toleran (mudah dikenali), nilai tinggi = lebih ketat (harus sangat mirip).
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Toleran</span>
-                      <span className="font-medium text-lg">{Math.round(formData.face_similarity_threshold * 100)}%</span>
-                      <span className="text-muted-foreground">Ketat</span>
-                    </div>
-                    <input
-                      id="face_threshold"
-                      type="range"
-                      min="30"
-                      max="70"
-                      step="5"
-                      value={formData.face_similarity_threshold * 100}
-                      onChange={(e) => setFormData({ ...formData, face_similarity_threshold: Number(e.target.value) / 100 })}
-                      className="w-full h-2 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-lg appearance-none cursor-pointer accent-primary"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>30%</span>
-                      <span>50% (Default)</span>
-                      <span>70%</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-muted/50 border">
-                    <p className="text-sm">
-                      {formData.face_similarity_threshold <= 0.35 && (
-                        <span className="text-green-600 dark:text-green-400">
-                          <strong>Sangat Toleran:</strong> Kemungkinan false positive tinggi, cocok untuk testing.
-                        </span>
-                      )}
-                      {formData.face_similarity_threshold > 0.35 && formData.face_similarity_threshold <= 0.45 && (
-                        <span className="text-yellow-600 dark:text-yellow-400">
-                          <strong>Toleran:</strong> Pengenalan lebih mudah, risiko false positive sedang.
-                        </span>
-                      )}
-                      {formData.face_similarity_threshold > 0.45 && formData.face_similarity_threshold <= 0.55 && (
-                        <span className="text-blue-600 dark:text-blue-400">
-                          <strong>Seimbang:</strong> Keseimbangan antara akurasi dan kemudahan pengenalan.
-                        </span>
-                      )}
-                      {formData.face_similarity_threshold > 0.55 && formData.face_similarity_threshold <= 0.65 && (
-                        <span className="text-orange-600 dark:text-orange-400">
-                          <strong>Ketat:</strong> Pengenalan lebih akurat, mungkin perlu posisi wajah yang tepat.
-                        </span>
-                      )}
-                      {formData.face_similarity_threshold > 0.65 && (
-                        <span className="text-red-600 dark:text-red-400">
-                          <strong>Sangat Ketat:</strong> Akurasi maksimal, kemungkinan gagal dikenali lebih tinggi.
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-end">
-                  <Button onClick={handleSave} disabled={isSaving} className="min-w-[100px]">
-                    {isSaving ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : (
-                      <Save className="w-4 h-4 mr-2" />
-                    )}
-                    Simpan
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Jadwal Kerja Mingguan */}
           <Card className="border-none shadow-sm bg-card/50">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -635,8 +549,10 @@ export function AdminPengaturan() {
 
               {/* Mobile Card Layout */}
               <div className="md:hidden space-y-4">
-                {schedules.sort((a, b) => a.day_of_week - b.day_of_week).map((schedule) => (
-                  <div key={schedule.day_of_week} className={`p-4 rounded-lg border ${schedule.is_workday ? 'bg-card' : 'bg-muted/30'}`}>
+                {schedules.sort((a, b) => a.day_of_week - b.day_of_week).map((schedule) => {
+                  const cardClassName = `p-4 rounded-lg border ${schedule.is_workday ? 'bg-card' : 'bg-muted/30'}`;
+                  return (
+                  <div key={schedule.day_of_week} className={cardClassName}>
                     <div className="flex items-center justify-between mb-4">
                       <span className="font-semibold">{getDayName(schedule.day_of_week)}</span>
                       <Switch
@@ -677,7 +593,8 @@ export function AdminPengaturan() {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -1013,7 +930,94 @@ export function AdminPengaturan() {
         </TabsContent>
 
         {/* Tab 4: Keamanan */}
-        <TabsContent value="keamanan">
+        <TabsContent value="keamanan" className="space-y-8">
+          {/* Pengaturan Face Recognition */}
+          <Card className="border-none shadow-sm bg-card/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <ScanFace className="w-5 h-5 text-primary" />
+                Pengaturan Pengenalan Wajah
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-8 items-start justify-between">
+                <div className="space-y-4 max-w-lg w-full">
+                  <div className="space-y-2">
+                    <Label htmlFor="face_threshold">Tingkat Kemiripan Wajah</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Semakin tinggi nilai, semakin ketat pencocokan wajah. Nilai rendah = lebih toleran (mudah dikenali), nilai tinggi = lebih ketat (harus sangat mirip).
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Toleran</span>
+                      <span className="font-medium text-lg">{Math.round(formData.face_similarity_threshold * 100)}%</span>
+                      <span className="text-muted-foreground">Ketat</span>
+                    </div>
+                    <input
+                      id="face_threshold"
+                      type="range"
+                      min="30"
+                      max="70"
+                      step="5"
+                      value={formData.face_similarity_threshold * 100}
+                      onChange={(e) => setFormData({ ...formData, face_similarity_threshold: Number(e.target.value) / 100 })}
+                      className="w-full h-2 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-lg appearance-none cursor-pointer accent-primary"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>30%</span>
+                      <span>50% (Default)</span>
+                      <span>70%</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-muted/50 border">
+                    <p className="text-sm">
+                      {formData.face_similarity_threshold <= 0.35 && (
+                        <span className="text-green-600 dark:text-green-400">
+                          <strong>Sangat Toleran:</strong> Kemungkinan false positive tinggi, cocok untuk testing.
+                        </span>
+                      )}
+                      {formData.face_similarity_threshold > 0.35 && formData.face_similarity_threshold <= 0.45 && (
+                        <span className="text-yellow-600 dark:text-yellow-400">
+                          <strong>Toleran:</strong> Pengenalan lebih mudah, risiko false positive sedang.
+                        </span>
+                      )}
+                      {formData.face_similarity_threshold > 0.45 && formData.face_similarity_threshold <= 0.55 && (
+                        <span className="text-blue-600 dark:text-blue-400">
+                          <strong>Seimbang:</strong> Keseimbangan antara akurasi dan kemudahan pengenalan.
+                        </span>
+                      )}
+                      {formData.face_similarity_threshold > 0.55 && formData.face_similarity_threshold <= 0.65 && (
+                        <span className="text-orange-600 dark:text-orange-400">
+                          <strong>Ketat:</strong> Pengenalan lebih akurat, mungkin perlu posisi wajah yang tepat.
+                        </span>
+                      )}
+                      {formData.face_similarity_threshold > 0.65 && (
+                        <span className="text-red-600 dark:text-red-400">
+                          <strong>Sangat Ketat:</strong> Akurasi maksimal, kemungkinan gagal dikenali lebih tinggi.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-end">
+                  <Button onClick={handleSave} disabled={isSaving} className="min-w-[100px]">
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Simpan
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ganti Password */}
           <Card className="border-none shadow-sm bg-card/50 max-w-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">

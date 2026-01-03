@@ -241,7 +241,7 @@ export function Survey() {
     );
   }
 
-  const satisfactionOptions: SatisfactionRating[] = ['sangat_puas', 'puas', 'cukup_puas', 'tidak_puas'];
+  const satisfactionOptions: SatisfactionRating[] = ['sangat_puas', 'puas', 'cukup_puas', 'tidak_puas', 'sangat_tidak_puas'];
 
   // Render current step content
   const renderStepContent = () => {

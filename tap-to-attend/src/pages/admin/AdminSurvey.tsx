@@ -96,6 +96,7 @@ const CustomDonutChart = ({ data }: { data: SatisfactionRating[] }) => {
     'puas': 4,
     'cukup_puas': 3,
     'tidak_puas': 2,
+    'sangat_tidak_puas': 1,
   };
   
   // Calculate average score
@@ -430,7 +431,7 @@ export function AdminSurvey() {
     return Math.round((value / total) * 100);
   };
 
-  const satisfactionOrder: SatisfactionRating[] = ['sangat_puas', 'puas', 'cukup_puas', 'tidak_puas'];
+  const satisfactionOrder: SatisfactionRating[] = ['sangat_puas', 'puas', 'cukup_puas', 'tidak_puas', 'sangat_tidak_puas'];
 
   return (
     <motion.div

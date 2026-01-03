@@ -401,14 +401,15 @@ def get_survey_stats(
         "sangat_puas": 0,
         "puas": 0,
         "cukup_puas": 0,
-        "tidak_puas": 0
+        "tidak_puas": 0,
+        "sangat_tidak_puas": 0
     }
     
     by_filled_by = {"sendiri": 0, "diwakilkan": 0}
     by_service_type = {}
     
     # Rating priority for determining dominant rating per response
-    rating_priority = {"sangat_puas": 4, "puas": 3, "cukup_puas": 2, "tidak_puas": 1}
+    rating_priority = {"sangat_puas": 5, "puas": 4, "cukup_puas": 3, "tidak_puas": 2, "sangat_tidak_puas": 1}
     
     for response in responses:
         # Count filled_by
@@ -420,7 +421,7 @@ def get_survey_stats(
             by_service_type[st_id] = {
                 "name": response.service_type.name,
                 "total": 0,
-                "ratings": {"sangat_puas": 0, "puas": 0, "cukup_puas": 0, "tidak_puas": 0}
+                "ratings": {"sangat_puas": 0, "puas": 0, "cukup_puas": 0, "tidak_puas": 0, "sangat_tidak_puas": 0}
             }
         by_service_type[st_id]["total"] += 1
         

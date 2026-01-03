@@ -1,13 +1,14 @@
 // Survey Kepuasan Types
 
 // Rating levels
-export type SatisfactionRating = 'sangat_puas' | 'puas' | 'cukup_puas' | 'tidak_puas';
+export type SatisfactionRating = 'sangat_puas' | 'puas' | 'cukup_puas' | 'tidak_puas' | 'sangat_tidak_puas';
 
 export const SATISFACTION_LABELS: Record<SatisfactionRating, string> = {
   sangat_puas: 'Sangat Puas',
   puas: 'Puas',
   cukup_puas: 'Cukup Puas',
   tidak_puas: 'Tidak Puas',
+  sangat_tidak_puas: 'Sangat Tidak Puas',
 };
 
 export const SATISFACTION_ICONS: Record<SatisfactionRating, string> = {
@@ -15,13 +16,15 @@ export const SATISFACTION_ICONS: Record<SatisfactionRating, string> = {
   puas: '🙂',
   cukup_puas: '😐',
   tidak_puas: '☹️',
+  sangat_tidak_puas: '😢',
 };
 
 export const SATISFACTION_COLORS: Record<SatisfactionRating, string> = {
   sangat_puas: 'bg-green-500',
   puas: 'bg-blue-500',
   cukup_puas: 'bg-yellow-500',
-  tidak_puas: 'bg-red-500',
+  tidak_puas: 'bg-orange-500',
+  sangat_tidak_puas: 'bg-red-500',
 };
 
 // Jenis Layanan

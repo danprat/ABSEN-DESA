@@ -50,6 +50,7 @@ import {
   BackendServiceType,
   BackendSurveyQuestion,
   BackendSurveyStats,
+  BackendSurveyResponse,
   SatisfactionRating,
   SATISFACTION_LABELS,
   SATISFACTION_ICONS,
@@ -235,6 +236,13 @@ export function AdminSurvey() {
   const [isLoadingQuestionStats, setIsLoadingQuestionStats] = useState(true);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
   
+  // Responses with feedback
+  const [responses, setResponses] = useState<BackendSurveyResponse[]>([]);
+  const [isLoadingResponses, setIsLoadingResponses] = useState(true);
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [totalFeedback, setTotalFeedback] = useState(0);
+  const feedbackPerPage = 5;
+  
   // Filter state
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
@@ -311,6 +319,35 @@ export function AdminSurvey() {
     });
   };
 
+  // Fetch responses with feedback
+  const fetchResponses = async (page: number = 1) => {
+    setIsLoadingResponses(true);
+    try {
+      // Get all responses to filter by feedback, then paginate client-side
+      const data = await api.admin.survey.responses.list({
+        start_date: startDate,
+        end_date: endDate,
+        service_type_id: filterServiceType !== 'all' ? parseInt(filterServiceType) : undefined,
+        page: 1,
+        per_page: 100, // Get enough responses to filter
+      });
+      // Filter only responses with feedback
+      const responsesWithFeedback = data.items.filter(r => r.feedback && r.feedback.trim());
+      setTotalFeedback(responsesWithFeedback.length);
+      
+      // Paginate client-side
+      const startIndex = (page - 1) * feedbackPerPage;
+      const endIndex = startIndex + feedbackPerPage;
+      setResponses(responsesWithFeedback.slice(startIndex, endIndex));
+      setFeedbackPage(page);
+    } catch (error) {
+      console.error('Failed to fetch responses:', error);
+      toast.error('Gagal memuat feedback');
+    } finally {
+      setIsLoadingResponses(false);
+    }
+  };
+
   // Fetch questions
   const fetchQuestions = async () => {
     setIsLoadingQuestions(true);
@@ -342,6 +379,7 @@ export function AdminSurvey() {
   useEffect(() => {
     fetchStats();
     fetchQuestionStats();
+    fetchResponses();
     fetchQuestions();
     fetchServiceTypes();
   }, []);
@@ -350,6 +388,8 @@ export function AdminSurvey() {
     if (activeTab === 'laporan') {
       fetchStats();
       fetchQuestionStats();
+      setFeedbackPage(1);
+      fetchResponses(1);
     }
   }, [startDate, endDate, filterServiceType]);
 
@@ -809,32 +849,35 @@ export function AdminSurvey() {
                 </motion.div>
               </div>
 
-              {/* Per-Question Detail Section */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-                <Card className="border-none shadow-md bg-white dark:bg-slate-950">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded-lg">
-                        <MessageSquare className="w-5 h-5 text-violet-600 dark:text-violet-400" />
-                      </div>
-                      Detail Per Pertanyaan
-                    </CardTitle>
-                    <CardDescription>
-                      Statistik dan feedback untuk setiap pertanyaan survey
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoadingQuestionStats ? (
-                      <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                        <p className="text-muted-foreground animate-pulse">Memuat data pertanyaan...</p>
-                      </div>
-                    ) : questionStats && questionStats.questions.length > 0 ? (
-                      <div className="space-y-4">
+              {/* Per-Question Detail & General Feedback - Side by Side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Per-Question Detail Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <Card className="border-none shadow-md bg-white dark:bg-slate-950 h-full flex flex-col">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded-lg">
+                          <MessageSquare className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                        </div>
+                        Detail Per Pertanyaan
+                      </CardTitle>
+                      <CardDescription>
+                        Statistik dan feedback untuk setiap pertanyaan survey
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1">
+                      {isLoadingQuestionStats ? (
+                        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                          <p className="text-muted-foreground animate-pulse">Memuat data pertanyaan...</p>
+                        </div>
+                      ) : questionStats && questionStats.questions.length > 0 ? (
+                        <ScrollArea className="h-[600px]">
+                          <div className="space-y-4 pr-4">
                         {questionStats.questions.map((question, index) => (
                           <div
                             key={question.question_id}
@@ -975,6 +1018,7 @@ export function AdminSurvey() {
                           </div>
                         ))}
                       </div>
+                        </ScrollArea>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                         <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
@@ -983,9 +1027,145 @@ export function AdminSurvey() {
                         <p>Belum ada data pertanyaan</p>
                       </div>
                     )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+              {/* General Feedback Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <Card className="border-none shadow-md bg-white dark:bg-slate-950 h-full flex flex-col">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
+                        <MessageSquare className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      Feedback & Saran Umum
+                    </CardTitle>
+                    <CardDescription>
+                      Komentar dan saran tambahan dari responden
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    {isLoadingResponses ? (
+                      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        <p className="text-muted-foreground animate-pulse">Memuat feedback...</p>
+                      </div>
+                    ) : responses.length > 0 || totalFeedback > 0 ? (
+                      <div className="space-y-4 h-full flex flex-col">
+                        <ScrollArea className="flex-1 h-[520px]">
+                          <div className="space-y-3 pr-4">
+                          {responses.map((response, idx) => (
+                            <motion.div
+                              key={response.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.03 }}
+                              className="p-4 rounded-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border shadow-sm hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                                  <MessageSquare className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm whitespace-pre-wrap leading-relaxed mb-3">{response.feedback}</p>
+                                  <Separator className="my-2" />
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge variant="secondary" className="text-xs">
+                                      <Building2 className="w-3 h-3 mr-1" />
+                                      {response.service_type_name}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      <Calendar className="w-3 h-3 mr-1" />
+                                      {new Date(response.submitted_at).toLocaleDateString('id-ID', { 
+                                        day: 'numeric', 
+                                        month: 'short', 
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </Badge>
+                                    <Badge variant={response.filled_by === 'sendiri' ? 'default' : 'secondary'} className="text-xs">
+                                      {response.filled_by === 'sendiri' ? 'Mandiri' : 'Diwakilkan'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                        </ScrollArea>
+
+                        {/* Pagination Controls */}
+                        {totalFeedback > feedbackPerPage && (
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t">
+                            <div className="text-sm text-muted-foreground">
+                              Menampilkan {((feedbackPage - 1) * feedbackPerPage) + 1}-{Math.min(feedbackPage * feedbackPerPage, totalFeedback)} dari {totalFeedback} feedback
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fetchResponses(feedbackPage - 1)}
+                                disabled={feedbackPage === 1 || isLoadingResponses}
+                              >
+                                <ArrowRight className="w-4 h-4 mr-1 rotate-180" />
+                                Sebelumnya
+                              </Button>
+                              <div className="flex items-center gap-1">
+                                {Array.from({ length: Math.ceil(totalFeedback / feedbackPerPage) }, (_, i) => i + 1)
+                                  .filter(page => {
+                                    // Show first page, last page, current page, and pages around current
+                                    return page === 1 || 
+                                           page === Math.ceil(totalFeedback / feedbackPerPage) ||
+                                           Math.abs(page - feedbackPage) <= 1;
+                                  })
+                                  .map((page, index, array) => (
+                                    <div key={page} className="flex items-center">
+                                      {index > 0 && array[index - 1] !== page - 1 && (
+                                        <span className="px-2 text-muted-foreground">...</span>
+                                      )}
+                                      <Button
+                                        variant={feedbackPage === page ? "default" : "ghost"}
+                                        size="sm"
+                                        className="w-8 h-8 p-0"
+                                        onClick={() => fetchResponses(page)}
+                                        disabled={isLoadingResponses}
+                                      >
+                                        {page}
+                                      </Button>
+                                    </div>
+                                  ))}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fetchResponses(feedbackPage + 1)}
+                                disabled={feedbackPage >= Math.ceil(totalFeedback / feedbackPerPage) || isLoadingResponses}
+                              >
+                                Selanjutnya
+                                <ArrowRight className="w-4 h-4 ml-1" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                          <MessageSquare className="w-8 h-8 opacity-50" />
+                        </div>
+                        <p>Belum ada feedback tambahan dari responden</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
+              </div>
             </div>
           ) : null}
         </TabsContent>

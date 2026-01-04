@@ -250,9 +250,6 @@ export function Survey() {
       return (
         <div className="space-y-3 sm:space-y-4">
           <div className="text-center space-y-1">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-1 sm:mb-2 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
-              <ClipboardList className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600" />
-            </div>
             <h2 className="text-lg sm:text-xl font-bold">Jenis Layanan</h2>
             <p className="text-xs sm:text-sm text-muted-foreground">Pilih layanan yang Anda terima</p>
           </div>
@@ -284,9 +281,6 @@ export function Survey() {
       return (
         <div className="space-y-3 sm:space-y-4">
           <div className="text-center space-y-1">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-1 sm:mb-2 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
-              <User className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600" />
-            </div>
             <h2 className="text-lg sm:text-xl font-bold">Pengisi Survey</h2>
             <p className="text-xs sm:text-sm text-muted-foreground">Siapa yang mengisi survey ini?</p>
           </div>
@@ -328,9 +322,6 @@ export function Survey() {
       return (
         <div className="space-y-4 sm:space-y-6">
           <div className="text-center space-y-1 sm:space-y-2">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 md:mb-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
-              <Star className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-amber-600" />
-            </div>
             <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold leading-tight px-2">
               {question.question_text}
               {question.is_required && <span className="text-red-500 ml-1">*</span>}
@@ -344,14 +335,14 @@ export function Survey() {
                   key={rating}
                   type="button"
                   onClick={() => handleResponseChange(question.id, rating)}
-                  className={`p-3 sm:p-4 md:p-6 rounded-2xl border-2 text-center transition-all duration-200 ${
+                  className={`p-3 sm:p-4 md:p-6 landscape:p-2 rounded-2xl border-2 text-center transition-all duration-200 ${
                     formData.responses[question.id] === rating
                       ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg shadow-amber-500/20 scale-105'
                       : 'border-muted hover:border-amber-300 hover:bg-muted/50'
                   }`}
                 >
-                  <span className="text-4xl sm:text-5xl md:text-6xl mb-2 sm:mb-3 block">{SATISFACTION_ICONS[rating]}</span>
-                  <span className="text-xs sm:text-sm md:text-base font-medium leading-tight block">
+                  <span className="text-4xl sm:text-5xl md:text-6xl landscape:text-4xl mb-2 sm:mb-3 landscape:mb-1 block">{SATISFACTION_ICONS[rating]}</span>
+                  <span className="text-xs sm:text-sm md:text-base landscape:text-[10px] font-medium leading-tight block">
                     {SATISFACTION_LABELS[rating]}
                   </span>
                 </button>
@@ -395,9 +386,6 @@ export function Survey() {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="text-center space-y-1 sm:space-y-2">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 md:mb-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
-            <span className="text-2xl sm:text-3xl">💬</span>
-          </div>
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Saran & Masukan</h2>
           <p className="text-xs sm:text-sm text-muted-foreground">Bagikan pendapat Anda (opsional)</p>
         </div>
@@ -424,19 +412,19 @@ export function Survey() {
         <div className="w-full max-w-6xl mx-auto flex-1 flex flex-col landscape:flex-row landscape:gap-6 landscape:items-center">
           
           {/* Header & Steps Section (Left in landscape) */}
-          <div className="w-full landscape:w-1/3 flex flex-col justify-center landscape:h-full">
+          <div className="w-full landscape:w-1/4 flex flex-col justify-center landscape:h-full">
           {/* Header */}
-          <div className="text-center mb-1 sm:mb-2 landscape:mb-4">
+          <div className="text-center mb-1 sm:mb-2 landscape:mb-0">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring" }}
-              className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-1 sm:mb-2 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/20"
+              className="w-12 h-12 sm:w-14 sm:h-14 landscape:w-8 landscape:h-8 mx-auto mb-1 sm:mb-2 landscape:mb-1 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/20"
             >
-              <Star className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              <Star className="w-6 h-6 sm:w-7 sm:h-7 landscape:w-4 landscape:h-4 text-white" />
             </motion.div>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground landscape:text-2xl">Survey Kepuasan</h1>
-            <p className="hidden landscape:block text-muted-foreground mt-1 text-sm">Masukan Anda sangat berharga bagi kami</p>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground landscape:text-lg">Survey Kepuasan</h1>
+            <p className="hidden landscape:block text-muted-foreground text-[10px]">Masukan Anda sangat berharga bagi kami</p>
           </div>
 
           {/* Step Indicator */}
@@ -444,7 +432,7 @@ export function Survey() {
           </div>
 
           {/* Content Card */}
-          <div className="flex-1 w-full landscape:w-2/3 bg-card/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl border-0 p-3 sm:p-4 md:p-6 flex flex-col overflow-y-auto landscape:max-h-[80vh]">
+          <div className="flex-1 w-full landscape:w-3/4 bg-card/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl border-0 p-3 sm:p-4 md:p-6 landscape:p-4 flex flex-col overflow-y-auto landscape:max-h-[85vh]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}

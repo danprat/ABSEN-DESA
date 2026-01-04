@@ -95,52 +95,41 @@ export function AdminLayout() {
 
       {/* Sidebar - Desktop */}
       {!isMobile && (
-        <motion.aside
-          initial={false}
-          animate={{ width: sidebarOpen ? 260 : 72 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="bg-background border-r border-border flex flex-col shrink-0 h-screen sticky top-0"
+        <aside
+          className={`bg-background border-r border-border flex flex-col shrink-0 h-screen sticky top-0 transition-[width] duration-300 ease-in-out ${
+            sidebarOpen ? 'w-[260px]' : 'w-[72px]'
+          }`}
         >
           {/* Header */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-            <AnimatePresence mode="wait">
-              {(sidebarOpen || isMobile) && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex items-center gap-3"
-                >
-                  {logoUrl && (
-                    <img
-                      src={`${API_BASE_URL}${logoUrl}`}
-                      alt="Logo"
-                      className="w-10 h-10 object-contain"
-                    />
-                  )}
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-semibold text-foreground text-sm md:text-base truncate" title={villageName}>{villageName}</span>
-                    <span className="text-xs text-muted-foreground truncate">Admin Panel</span>
-                  </div>
-                </motion.div>
+            <div
+              className={`flex items-center gap-3 transition-opacity duration-200 ${
+                sidebarOpen ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'
+              }`}
+            >
+              {logoUrl && (
+                <img
+                  src={`${API_BASE_URL}${logoUrl}`}
+                  alt="Logo"
+                  className="w-10 h-10 object-contain shrink-0"
+                />
               )}
-            </AnimatePresence>
+              <div className="flex flex-col min-w-0">
+                <span className="font-semibold text-foreground text-sm md:text-base truncate" title={villageName}>
+                  {villageName}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">Admin Panel</span>
+              </div>
+            </div>
+
             {!isMobile && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="shrink-0"
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </Button>
-            )}
-            {isMobile && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(false)}
-              >
-                <X className="w-5 h-5" />
               </Button>
             )}
           </div>
@@ -157,20 +146,16 @@ export function AdminLayout() {
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     }`}
+                  title={!sidebarOpen ? item.label : undefined}
                 >
                   <item.icon className="w-5 h-5 shrink-0" />
-                  <AnimatePresence mode="wait">
-                    {(sidebarOpen || isMobile) && (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className="font-medium whitespace-nowrap overflow-hidden text-sm"
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
+                  <span
+                    className={`font-medium whitespace-nowrap overflow-hidden text-sm transition-[opacity,width] duration-300 ease-in-out ${
+                      sidebarOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}
@@ -181,41 +166,33 @@ export function AdminLayout() {
             <Link
               to="/"
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+              title={!sidebarOpen ? 'Ke Mesin Absensi' : undefined}
             >
               <Home className="w-5 h-5 shrink-0" />
-              <AnimatePresence mode="wait">
-                {(sidebarOpen || isMobile) && (
-                  <motion.span
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    className="font-medium whitespace-nowrap overflow-hidden text-sm"
-                  >
-                    Ke Mesin Absensi
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <span
+                className={`font-medium whitespace-nowrap overflow-hidden text-sm transition-[opacity,width] duration-300 ease-in-out ${
+                  sidebarOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0'
+                }`}
+              >
+                Ke Mesin Absensi
+              </span>
             </Link>
             <button
               onClick={logout}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+              title={!sidebarOpen ? 'Keluar' : undefined}
             >
               <LogOut className="w-5 h-5 shrink-0" />
-              <AnimatePresence mode="wait">
-                {(sidebarOpen || isMobile) && (
-                  <motion.span
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    className="font-medium whitespace-nowrap overflow-hidden text-sm"
-                  >
-                    Keluar
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <span
+                className={`font-medium whitespace-nowrap overflow-hidden text-sm transition-[opacity,width] duration-300 ease-in-out ${
+                  sidebarOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0'
+                }`}
+              >
+                Keluar
+              </span>
             </button>
           </div>
-        </motion.aside>
+        </aside>
       )}
 
       {/* Sidebar - Mobile */}
@@ -319,10 +296,9 @@ export function AdminLayout() {
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
             className="p-4 md:p-6 flex-1 pb-16"
           >
             <Outlet />
@@ -332,8 +308,8 @@ export function AdminLayout() {
 
       {/* Fixed Footer - only covers main content area, not sidebar */}
       <footer
-        className="fixed bottom-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border py-2 px-4 z-30 transition-all duration-300"
-        style={{ left: isMobile ? 0 : (sidebarOpen ? 260 : 72) }}
+        className="fixed bottom-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border py-2 px-4 z-30 transition-all duration-300 w-full md:w-[calc(100%-72px)]"
+        style={{ width: isMobile ? '100%' : `calc(100% - ${sidebarOpen ? '260px' : '72px'})` }}
       >
         <p className="text-[10px] md:text-xs text-muted-foreground text-center">
           Dibuat oleh <span className="font-medium text-foreground">Dany Pratmanto</span> ·

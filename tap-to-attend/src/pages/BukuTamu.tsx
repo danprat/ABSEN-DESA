@@ -424,19 +424,19 @@ export function BukuTamu() {
         <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col landscape:flex-row landscape:gap-6 landscape:items-center">
           
           {/* Header & Steps Section (Left side in landscape) */}
-          <div className="w-full landscape:w-1/3 flex flex-col justify-center landscape:h-full">
+          <div className="w-full landscape:w-1/4 flex flex-col justify-center landscape:h-full">
           {/* Header */}
-          <div className="text-center mb-1 sm:mb-2 landscape:mb-4">
+          <div className="text-center mb-1 sm:mb-2 landscape:mb-0">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring" }}
-              className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-1 sm:mb-2 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/20"
+              className="w-12 h-12 sm:w-14 sm:h-14 landscape:w-8 landscape:h-8 mx-auto mb-1 sm:mb-2 landscape:mb-1 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/20"
             >
-              <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 landscape:w-4 landscape:h-4 text-white" />
             </motion.div>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground landscape:text-2xl">Buku Tamu</h1>
-            <p className="hidden landscape:block text-muted-foreground mt-1 text-sm">Silakan isi data kunjungan Anda</p>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground landscape:text-lg">Buku Tamu</h1>
+            <p className="hidden landscape:block text-muted-foreground text-[10px]">Silakan isi data kunjungan Anda</p>
           </div>
 
           {/* Step Indicator */}
@@ -444,7 +444,7 @@ export function BukuTamu() {
           </div>
 
           {/* Content Card */}
-          <div className="flex-1 w-full landscape:w-2/3 bg-card/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl border-0 p-3 sm:p-4 md:p-6 flex flex-col overflow-y-auto landscape:max-h-[80vh]">
+          <div className="flex-1 w-full landscape:w-3/4 bg-card/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl border-0 p-3 sm:p-4 md:p-6 landscape:p-4 flex flex-col overflow-y-auto landscape:max-h-[85vh]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}

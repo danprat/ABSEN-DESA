@@ -49,26 +49,26 @@ const Index = () => {
   const { settings } = useSettings();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-primary/5 to-background overflow-x-hidden">
+    <div className="min-h-screen h-screen flex flex-col bg-gradient-to-br from-background via-primary/5 to-background overflow-hidden">
       <Header
         villageName={settings.villageName}
         officerName={settings.officerName}
         logoUrl={settings.logoUrl}
       />
       
-      <main className="flex-1 flex items-center justify-center px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
+      <main className="flex-1 flex items-center justify-center px-3 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-3 md:py-4 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-4xl"
+          className="w-full max-w-4xl flex flex-col justify-center h-full"
         >
           {/* Title */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-center mb-3 sm:mb-4 md:mb-6 lg:mb-8"
+            className="text-center mb-3 sm:mb-4 md:mb-6 lg:mb-8 landscape:mb-4"
           >
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-1 sm:mb-2">
               Sistem Absensi Desa
@@ -77,16 +77,17 @@ const Index = () => {
           </motion.div>
 
           {/* Menu Grid - Responsive: 1 col mobile, 2 cols tablet/desktop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:gap-6 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 landscape:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 max-w-5xl mx-auto w-full">
             {menuItems.map((item, index) => (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + index * 0.1, type: "spring" }}
+                className="h-full"
               >
                 <Link to={item.to}>
-                  <div className={`group relative overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl bg-gradient-to-br ${item.color} p-3 sm:p-4 md:p-6 lg:p-8 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] h-28 sm:h-32 md:h-40 lg:h-48 flex flex-col justify-between cursor-pointer`}>
+                  <div className={`group relative overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl bg-gradient-to-br ${item.color} p-3 sm:p-4 md:p-6 lg:p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] h-24 sm:h-32 md:h-40 lg:h-48 landscape:h-40 flex flex-col justify-between cursor-pointer`}>
                     {/* New Badge */}
                     {item.isNew && (
                       <motion.div
@@ -102,14 +103,14 @@ const Index = () => {
                     )}
 
                     {/* Icon */}
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-lg sm:rounded-xl md:rounded-2xl ${item.iconBg} backdrop-blur-sm flex items-center justify-center transition-transform group-hover:scale-110`}>
-                      <item.icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-white" strokeWidth={2} />
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 lg:w-16 lg:h-16 rounded-lg sm:rounded-xl md:rounded-2xl ${item.iconBg} backdrop-blur-sm flex items-center justify-center transition-transform group-hover:scale-110`}>
+                      <item.icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-8 lg:h-8 text-white" strokeWidth={2} />
                     </div>
 
                     {/* Text */}
                     <div className="space-y-0">
-                      <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold leading-tight">{item.title}</h3>
-                      <p className="text-white/90 text-xs sm:text-sm md:text-base lg:text-lg font-medium">{item.subtitle}</p>
+                      <h3 className="text-base sm:text-lg md:text-xl lg:text-xl font-bold leading-tight">{item.title}</h3>
+                      <p className="text-white/90 text-xs sm:text-sm md:text-base lg:text-base font-medium">{item.subtitle}</p>
                     </div>
 
                     {/* Decorative elements */}
@@ -124,7 +125,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="p-1.5 sm:p-2 md:p-3 text-center">
+      <footer className="p-1.5 sm:p-2 md:p-3 text-center landscape:py-1">
         <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">
           Dibuat oleh <span className="font-medium text-foreground">Dany Pratmanto</span> · 
           <a

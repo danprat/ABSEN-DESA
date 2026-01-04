@@ -107,9 +107,9 @@ const Absen = () => {
         </AnimatePresence>
 
         {/* Back button */}
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center z-10">
+        <div className="absolute bottom-4 landscape:bottom-6 left-0 right-0 flex justify-center z-10 pointer-events-none">
           <Link to="/">
-            <Button variant="secondary" className="shadow-lg">
+            <Button variant="secondary" className="shadow-lg pointer-events-auto landscape:px-8 landscape:py-6 landscape:text-lg">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Kembali ke Menu
             </Button>

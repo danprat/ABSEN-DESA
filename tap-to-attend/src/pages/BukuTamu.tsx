@@ -417,13 +417,16 @@ export function BukuTamu() {
 
   // Form State - Survey-like UX
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50 via-background to-emerald-50/30 dark:from-emerald-950/20 dark:via-background dark:to-emerald-950/10">
+    <div className="min-h-screen h-screen flex flex-col bg-gradient-to-br from-emerald-50 via-background to-emerald-50/30 dark:from-emerald-950/20 dark:via-background dark:to-emerald-950/10 overflow-hidden">
       <Header villageName={settings.villageName} officerName={settings.officerName} logoUrl={settings.logoUrl} />
 
-      <main className="flex-1 flex flex-col px-3 sm:px-4 py-2 sm:py-3">
-        <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col px-3 sm:px-4 py-2 sm:py-3 overflow-hidden">
+        <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col landscape:flex-row landscape:gap-6 landscape:items-center">
+          
+          {/* Header & Steps Section (Left side in landscape) */}
+          <div className="w-full landscape:w-1/3 flex flex-col justify-center landscape:h-full">
           {/* Header */}
-          <div className="text-center mb-1 sm:mb-2">
+          <div className="text-center mb-1 sm:mb-2 landscape:mb-4">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -432,14 +435,16 @@ export function BukuTamu() {
             >
               <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </motion.div>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Buku Tamu</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground landscape:text-2xl">Buku Tamu</h1>
+            <p className="hidden landscape:block text-muted-foreground mt-1 text-sm">Silakan isi data kunjungan Anda</p>
           </div>
 
           {/* Step Indicator */}
           <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
+          </div>
 
           {/* Content Card */}
-          <div className="flex-1 bg-card/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl border-0 p-3 sm:p-4 md:p-6 flex flex-col overflow-y-auto">
+          <div className="flex-1 w-full landscape:w-2/3 bg-card/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl border-0 p-3 sm:p-4 md:p-6 flex flex-col overflow-y-auto landscape:max-h-[80vh]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}

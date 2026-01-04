@@ -145,8 +145,12 @@ const DaftarHadir = () => {
       />
       
       <main className="flex-1 flex flex-col overflow-hidden p-4 space-y-4">
+        <div className="flex-1 flex flex-col landscape:flex-row landscape:gap-6 overflow-hidden">
+        
+        {/* Left Side: Stats & Search (Landscape) */}
+        <div className="flex-none space-y-4 landscape:w-1/3 landscape:flex landscape:flex-col">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 landscape:grid-cols-2 gap-2">
           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.hadir}</p>
             <p className="text-xs text-green-700 dark:text-green-300">Hadir</p>
@@ -175,9 +179,26 @@ const DaftarHadir = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        
+        {/* Actions (Moved to left side in landscape) */}
+        <div className="hidden landscape:flex gap-3 pt-2 mt-auto">
+          <Link to="/" className="flex-1">
+            <Button variant="outline" className="w-full h-12 text-lg">
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Kembali
+            </Button>
+          </Link>
+          <Link to="/absen" className="flex-1">
+            <Button className="w-full h-12 text-lg">
+              <Camera className="w-5 h-5 mr-2" />
+              Absen
+            </Button>
+          </Link>
+        </div>
+        </div>
 
         {/* List */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 landscape:w-2/3 landscape:h-full bg-card/50 rounded-xl border landscape:border-border landscape:p-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -201,9 +222,10 @@ const DaftarHadir = () => {
             </motion.div>
           )}
         </ScrollArea>
+        </div>
 
         {/* Bottom actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-2 landscape:hidden">
           <Link to="/" className="flex-1">
             <Button variant="outline" className="w-full">
               <ArrowLeft className="w-4 h-4 mr-2" />

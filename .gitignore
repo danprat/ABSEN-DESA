@@ -4,7 +4,6 @@
 .env.production
 backend/.env.example
 backend/app/config.py
-backend/app/utils/auth.py
 backend/app/config_example.py
 backend/app/utils/auth_example.py
 

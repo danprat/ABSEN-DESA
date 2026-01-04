@@ -141,3 +141,29 @@ class SurveyStatsResponse(BaseModel):
     rating_distribution: Dict[str, int]
     by_service_type: List[ServiceTypeStats]
     by_filled_by: Dict[str, int]
+
+
+# ============ Per-Question Stats Schema ============
+
+class TextFeedbackItem(BaseModel):
+    """Schema for individual text feedback"""
+    response_id: int
+    answer: str
+    service_type_name: str
+    submitted_at: datetime
+
+
+class QuestionStatistics(BaseModel):
+    """Schema for per-question statistics"""
+    question_id: int
+    question_text: str
+    question_type: QuestionType
+    response_count: int
+    rating_distribution: Optional[Dict[str, int]] = None  # For rating questions
+    text_responses: Optional[List[TextFeedbackItem]] = None  # For text questions
+
+
+class QuestionStatsResponse(BaseModel):
+    """Schema for all question statistics"""
+    questions: List[QuestionStatistics]
+    total_responses: int

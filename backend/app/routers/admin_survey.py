@@ -25,6 +25,9 @@ from app.schemas.survey import (
     SurveyResponseListResponse,
     SurveyStatsResponse,
     ServiceTypeStats,
+    QuestionStatsResponse,
+    QuestionStatistics,
+    TextFeedbackItem,
 )
 from app.utils.auth import get_current_admin
 from app.utils.audit import log_audit
@@ -464,6 +467,100 @@ def get_survey_stats(
         rating_distribution=rating_distribution,
         by_service_type=service_type_stats,
         by_filled_by=by_filled_by
+    )
+
+
+@router.get("/stats/questions", response_model=QuestionStatsResponse)
+def get_question_stats(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    service_type_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """Get per-question statistics with detailed breakdowns and text feedback"""
+    # Get all active questions
+    questions = db.query(SurveyQuestion).filter(SurveyQuestion.is_active == True).order_by(SurveyQuestion.order).all()
+    
+    # Get responses with filters
+    query = db.query(SurveyResponse).join(ServiceType)
+    
+    if start_date:
+        query = query.filter(func.date(SurveyResponse.submitted_at) >= start_date)
+    if end_date:
+        query = query.filter(func.date(SurveyResponse.submitted_at) <= end_date)
+    if service_type_id:
+        query = query.filter(SurveyResponse.service_type_id == service_type_id)
+    
+    responses = query.all()
+    total_responses = len(responses)
+    
+    # Valid rating values
+    valid_ratings = {"sangat_puas", "puas", "cukup_puas", "tidak_puas", "sangat_tidak_puas"}
+    
+    # Calculate stats for each question
+    question_stats = []
+    
+    for question in questions:
+        question_id_str = str(question.id)
+        response_count = 0
+        
+        if question.question_type.value == "rating":
+            # Rating question - aggregate distribution
+            rating_distribution = {
+                "sangat_puas": 0,
+                "puas": 0,
+                "cukup_puas": 0,
+                "tidak_puas": 0,
+                "sangat_tidak_puas": 0
+            }
+            
+            for response in responses:
+                if question_id_str in response.responses:
+                    answer = response.responses[question_id_str]
+                    if answer in valid_ratings:
+                        rating_distribution[answer] += 1
+                        response_count += 1
+            
+            question_stats.append(QuestionStatistics(
+                question_id=question.id,
+                question_text=question.question_text,
+                question_type=question.question_type,
+                response_count=response_count,
+                rating_distribution=rating_distribution,
+                text_responses=None
+            ))
+        else:
+            # Text question - collect all text responses
+            text_responses = []
+            
+            for response in responses:
+                if question_id_str in response.responses:
+                    answer = response.responses[question_id_str]
+                    if answer and answer.strip():
+                        text_responses.append(TextFeedbackItem(
+                            response_id=response.id,
+                            answer=answer,
+                            service_type_name=response.service_type.name,
+                            submitted_at=response.submitted_at
+                        ))
+                        response_count += 1
+            
+            # Sort by date descending
+            text_responses.sort(key=lambda x: x.submitted_at, reverse=True)
+            
+            question_stats.append(QuestionStatistics(
+                question_id=question.id,
+                question_text=question.question_text,
+                question_type=question.question_type,
+                response_count=response_count,
+                rating_distribution=None,
+                text_responses=text_responses
+            ))
+    
+    return QuestionStatsResponse(
+        questions=question_stats,
+        total_responses=total_responses
     )
 
 

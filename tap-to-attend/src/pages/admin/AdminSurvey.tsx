@@ -39,6 +39,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Skeleton } from '@/components/ui/skeleton';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import {
@@ -49,42 +54,60 @@ import {
   SATISFACTION_LABELS,
   SATISFACTION_ICONS,
   SATISFACTION_COLORS,
+  SATISFACTION_COLOR_HEX,
+  BackendQuestionStatsResponse,
+  QuestionStatistics,
 } from '@/types/survey';
 import { cn } from '@/lib/utils';
 
 // --- Components for UI/UX Pro Max ---
 
-const StatCard = ({ title, value, icon: Icon, trend, color, delay = 0 }: any) => (
+const StatCard = ({ title, value, icon: Icon, trend, color, delay = 0, tooltip }: any) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.4, delay }}
   >
-    <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className={cn("p-3 rounded-2xl bg-opacity-10", color)}>
-            <Icon className={cn("w-6 h-6", color.replace('bg-', 'text-'))} />
-          </div>
-          {trend && (
-            <div className={cn("flex items-center text-sm font-medium", 
-              trend > 0 ? "text-emerald-600" : "text-rose-600"
-            )}>
-              {trend > 0 ? "+" : ""}{trend}%
-              <TrendingUp className={cn("w-4 h-4 ml-1", trend < 0 && "rotate-180")} />
-            </div>
-          )}
-        </div>
-        <div className="mt-4">
-          <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-          <p className="text-3xl font-bold mt-1 tracking-tight">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm cursor-pointer">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className={cn("p-3 rounded-2xl bg-opacity-10", color)}>
+                  <Icon className={cn("w-6 h-6", color.replace('bg-', 'text-'))} />
+                </div>
+                {trend && (
+                  <Badge variant={trend > 0 ? "default" : "destructive"} className="text-xs">
+                    {trend > 0 ? "+" : ""}{trend}%
+                    <TrendingUp className={cn("w-3 h-3 ml-1", trend < 0 && "rotate-180")} />
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-4">
+                <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+                <p className="text-3xl font-bold mt-1 tracking-tight">{value}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TooltipTrigger>
+        {tooltip && (
+          <TooltipContent>
+            <p>{tooltip}</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   </motion.div>
 );
 
-const CustomDonutChart = ({ data }: { data: SatisfactionRating[] }) => {
+// Chart data type for donut chart
+interface ChartDataItem {
+  rating: SatisfactionRating;
+  count: number;
+}
+
+const CustomDonutChart = ({ data }: { data: ChartDataItem[] }) => {
   const total = data.reduce((acc, curr) => acc + curr.count, 0);
   let currentAngle = 0;
   const radius = 80;
@@ -125,7 +148,7 @@ const CustomDonutChart = ({ data }: { data: SatisfactionRating[] }) => {
                 cy={center}
                 r={radius}
                 fill="none"
-                stroke={SATISFACTION_COLORS[item.rating as keyof typeof SATISFACTION_COLORS]}
+                stroke={SATISFACTION_COLOR_HEX[item.rating]}
                 strokeWidth="20"
                 strokeDasharray={`${dashArray} ${circumference}`}
                 strokeDashoffset={-((currentAngle / 360) * circumference)}
@@ -178,7 +201,7 @@ const CustomDonutChart = ({ data }: { data: SatisfactionRating[] }) => {
             <div className="flex items-center gap-3">
               <div 
                 className="w-3 h-3 rounded-full shadow-sm" 
-                style={{ backgroundColor: SATISFACTION_COLORS[item.rating as keyof typeof SATISFACTION_COLORS] }} 
+                style={{ backgroundColor: SATISFACTION_COLOR_HEX[item.rating] }} 
               />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 {SATISFACTION_LABELS[item.rating as keyof typeof SATISFACTION_LABELS]}
@@ -206,6 +229,11 @@ export function AdminSurvey() {
   const [stats, setStats] = useState<BackendSurveyStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  
+  // Question stats state
+  const [questionStats, setQuestionStats] = useState<BackendQuestionStatsResponse | null>(null);
+  const [isLoadingQuestionStats, setIsLoadingQuestionStats] = useState(true);
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
   
   // Filter state
   const today = new Date();
@@ -252,6 +280,37 @@ export function AdminSurvey() {
 
   };
 
+  // Fetch question stats
+  const fetchQuestionStats = async () => {
+    setIsLoadingQuestionStats(true);
+    try {
+      const data = await api.admin.survey.responses.questionStats({
+        start_date: startDate,
+        end_date: endDate,
+        service_type_id: filterServiceType !== 'all' ? parseInt(filterServiceType) : undefined,
+      });
+      setQuestionStats(data);
+    } catch (error) {
+      console.error('Failed to fetch question stats:', error);
+      toast.error('Gagal memuat statistik per pertanyaan');
+    } finally {
+      setIsLoadingQuestionStats(false);
+    }
+  };
+
+  // Toggle expanded question
+  const toggleExpandQuestion = (questionId: number) => {
+    setExpandedQuestions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(questionId)) {
+        newSet.delete(questionId);
+      } else {
+        newSet.add(questionId);
+      }
+      return newSet;
+    });
+  };
+
   // Fetch questions
   const fetchQuestions = async () => {
     setIsLoadingQuestions(true);
@@ -282,6 +341,7 @@ export function AdminSurvey() {
 
   useEffect(() => {
     fetchStats();
+    fetchQuestionStats();
     fetchQuestions();
     fetchServiceTypes();
   }, []);
@@ -289,6 +349,7 @@ export function AdminSurvey() {
   useEffect(() => {
     if (activeTab === 'laporan') {
       fetchStats();
+      fetchQuestionStats();
     }
   }, [startDate, endDate, filterServiceType]);
 
@@ -441,8 +502,16 @@ export function AdminSurvey() {
     >
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Survey Kepuasan</h1>
-        <p className="text-muted-foreground">Kelola survey dan lihat hasil</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Survey Kepuasan</h1>
+            <p className="text-muted-foreground">Kelola survey dan lihat hasil</p>
+          </div>
+          <Badge variant="outline" className="text-sm">
+            {stats?.total_responses || 0} Responden
+          </Badge>
+        </div>
+        <Separator className="my-4" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -533,9 +602,43 @@ export function AdminSurvey() {
           </Card>
 
           {isLoadingStats ? (
-            <div className="flex flex-col items-center justify-center py-20 space-y-4">
-              <Loader2 className="w-10 h-10 animate-spin text-primary" />
-              <p className="text-muted-foreground animate-pulse">Memuat data survey...</p>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <Card key={i} className="overflow-hidden border-none shadow-md">
+                    <CardContent className="p-6 space-y-4">
+                      <Skeleton className="h-12 w-12 rounded-2xl" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-8 w-16" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card className="lg:col-span-2 border-none shadow-md">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-64 mt-2" />
+                  </CardHeader>
+                  <CardContent className="py-12">
+                    <div className="flex items-center justify-center">
+                      <Skeleton className="h-64 w-64 rounded-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-none shadow-md">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-40" />
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <Skeleton key={i} className="h-16 w-full" />
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           ) : stats ? (
             <div className="space-y-6">
@@ -547,6 +650,7 @@ export function AdminSurvey() {
                   icon={Users} 
                   color="bg-blue-500"
                   delay={0}
+                  tooltip="Total responden yang telah mengisi survey"
                 />
                 
                 <StatCard 
@@ -556,8 +660,9 @@ export function AdminSurvey() {
                     : 0}%`}
                   icon={CheckCircle2} 
                   color="bg-emerald-500"
-                  trend={2.5} // Mock trend for now
+                  trend={2.5}
                   delay={0.1}
+                  tooltip="Persentase responden yang memberikan rating Puas atau Sangat Puas"
                 />
                 <StatCard 
                   title="Mengisi Sendiri" 
@@ -565,6 +670,7 @@ export function AdminSurvey() {
                   icon={Edit} 
                   color="bg-violet-500"
                   delay={0.2}
+                  tooltip="Responden yang mengisi survey secara mandiri"
                 />
                 <StatCard 
                   title="Diwakilkan" 
@@ -572,6 +678,7 @@ export function AdminSurvey() {
                   icon={Users} 
                   color="bg-amber-500"
                   delay={0.3}
+                  tooltip="Responden yang diwakilkan oleh petugas"
                 />
               </div>
 
@@ -599,10 +706,12 @@ export function AdminSurvey() {
                       {stats.total_responses > 0 ? (
                         <div className="py-6">
                           <CustomDonutChart 
-                            data={satisfactionOrder.map(rating => ({
-                              rating,
-                              count: stats.rating_distribution[rating] || 0
-                            }))} 
+                            data={satisfactionOrder
+                              .map(rating => ({
+                                rating,
+                                count: stats.rating_distribution[rating] || 0
+                              }))
+                              .filter(item => item.count > 0)} 
                           />
                         </div>
                       ) : (
@@ -669,13 +778,13 @@ export function AdminSurvey() {
                                       {item.satisfactionPercent}%
                                     </span>
                                   </div>
-                                  <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                  <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                     <motion.div
                                       initial={{ width: 0 }}
                                       animate={{ width: `${item.satisfactionPercent}%` }}
                                       transition={{ duration: 1, delay: 0.5 + (index * 0.1) }}
                                       className={cn(
-                                        "h-full rounded-full",
+                                        "h-full rounded-full transition-all",
                                         item.satisfactionPercent >= 80 ? "bg-emerald-500" :
                                         item.satisfactionPercent >= 60 ? "bg-blue-500" :
                                         "bg-amber-500"
@@ -683,7 +792,7 @@ export function AdminSurvey() {
                                     />
                                   </div>
                                   <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
-                                    <span>{item.total} responden</span>
+                                    <span>{(item.rating_distribution['sangat_puas'] || 0) + (item.rating_distribution['puas'] || 0)}/{item.total} puas</span>
                                     <span>Target: 80%</span>
                                   </div>
                                 </div>
@@ -699,6 +808,184 @@ export function AdminSurvey() {
                   </Card>
                 </motion.div>
               </div>
+
+              {/* Per-Question Detail Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <Card className="border-none shadow-md bg-white dark:bg-slate-950">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded-lg">
+                        <MessageSquare className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                      </div>
+                      Detail Per Pertanyaan
+                    </CardTitle>
+                    <CardDescription>
+                      Statistik dan feedback untuk setiap pertanyaan survey
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingQuestionStats ? (
+                      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        <p className="text-muted-foreground animate-pulse">Memuat data pertanyaan...</p>
+                      </div>
+                    ) : questionStats && questionStats.questions.length > 0 ? (
+                      <div className="space-y-4">
+                        {questionStats.questions.map((question, index) => (
+                          <div
+                            key={question.question_id}
+                            className="border rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-900/50"
+                          >
+                            {/* Question Header */}
+                            <div
+                              className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors"
+                              onClick={() => toggleExpandQuestion(question.question_id)}
+                            >
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{question.question_text}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {question.question_type === 'rating' ? 'Rating' : 'Teks'}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">{question.response_count} respons</span>
+                                    {question.question_type === 'rating' && question.rating_distribution && question.response_count > 0 && (() => {
+                                      const ratingScoreMap: Record<SatisfactionRating, number> = {
+                                        'sangat_puas': 5,
+                                        'puas': 4,
+                                        'cukup_puas': 3,
+                                        'tidak_puas': 2,
+                                        'sangat_tidak_puas': 1,
+                                      };
+                                      const totalScore = satisfactionOrder.reduce((acc, rating) => {
+                                        const count = question.rating_distribution?.[rating] || 0;
+                                        return acc + (ratingScoreMap[rating] * count);
+                                      }, 0);
+                                      const avgScore = (totalScore / question.response_count).toFixed(1);
+                                      return (
+                                        <>
+                                          <span className="text-xs text-muted-foreground">•</span>
+                                          <Badge className="text-xs font-bold bg-amber-500 hover:bg-amber-600">
+                                            Rata-rata: {avgScore}/5
+                                          </Badge>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              </div>
+                              <motion.div
+                                animate={{ rotate: expandedQuestions.has(question.question_id) ? 180 : 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <ArrowRight className="w-5 h-5 text-muted-foreground rotate-90" />
+                              </motion.div>
+                            </div>
+
+                            {/* Expanded Content */}
+                            <AnimatePresence>
+                              {expandedQuestions.has(question.question_id) && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 pt-0 border-t">
+                                    {question.question_type === 'rating' && question.rating_distribution ? (
+                                      /* Rating Distribution */
+                                      <div className="space-y-3">
+                                        {satisfactionOrder.map((rating) => {
+                                          const count = question.rating_distribution?.[rating] || 0;
+                                          const percentage = question.response_count > 0 
+                                            ? Math.round((count / question.response_count) * 100) 
+                                            : 0;
+                                          return (
+                                            <div key={rating} className="space-y-2">
+                                              <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: SATISFACTION_COLOR_HEX[rating] }} />
+                                                  <span className="text-xs font-medium">{SATISFACTION_LABELS[rating]}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-sm font-bold">{count}</span>
+                                                  <Badge variant="outline" className="text-xs min-w-[3rem] justify-center">
+                                                    {percentage}%
+                                                  </Badge>
+                                                </div>
+                                              </div>
+                                              <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                <motion.div
+                                                  initial={{ width: 0 }}
+                                                  animate={{ width: `${percentage}%` }}
+                                                  transition={{ duration: 0.8, delay: 0.1 }}
+                                                  className="h-full rounded-full"
+                                                  style={{ backgroundColor: SATISFACTION_COLOR_HEX[rating] }}
+                                                />
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : question.text_responses && question.text_responses.length > 0 ? (
+                                      /* Text Feedback List */
+                                      <ScrollArea className="h-[300px]">
+                                        <div className="space-y-3 pr-4">
+                                          {question.text_responses.map((feedback, idx) => (
+                                            <motion.div
+                                              key={feedback.response_id}
+                                              initial={{ opacity: 0, x: -10 }}
+                                              animate={{ opacity: 1, x: 0 }}
+                                              transition={{ delay: idx * 0.05 }}
+                                              className="p-3 rounded-lg bg-white dark:bg-slate-800 border shadow-sm hover:shadow-md transition-shadow"
+                                            >
+                                              <p className="text-sm whitespace-pre-wrap leading-relaxed">{feedback.answer}</p>
+                                              <Separator className="my-2" />
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                <Badge variant="secondary" className="text-xs">
+                                                  <Building2 className="w-3 h-3 mr-1" />
+                                                  {feedback.service_type_name}
+                                                </Badge>
+                                                <Badge variant="outline" className="text-xs">
+                                                  <Calendar className="w-3 h-3 mr-1" />
+                                                  {new Date(feedback.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                </Badge>
+                                              </div>
+                                            </motion.div>
+                                          ))}
+                                        </div>
+                                      </ScrollArea>
+                                    ) : (
+                                      <div className="text-center py-6 text-muted-foreground text-sm">
+                                        Belum ada respons untuk pertanyaan ini
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                          <MessageSquare className="w-8 h-8 opacity-50" />
+                        </div>
+                        <p>Belum ada data pertanyaan</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
           ) : null}
         </TabsContent>
@@ -797,14 +1084,25 @@ export function AdminSurvey() {
                       <div className="flex-1">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="font-medium">
-                              {index + 1}. {question.question_text}
-                              {question.is_required && <span className="text-red-500 ml-1">*</span>}
-                            </p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Tipe: {question.question_type === 'rating' ? 'Rating' : 'Teks'}
-                              {!question.is_active && ' • Nonaktif'}
-                            </p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium">
+                                {index + 1}. {question.question_text}
+                                {question.is_required && <span className="text-red-500 ml-1">*</span>}
+                              </p>
+                              {!question.is_active && (
+                                <Badge variant="secondary" className="text-xs">Nonaktif</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                {question.question_type === 'rating' ? 'Rating' : 'Teks'}
+                              </Badge>
+                              {question.is_required && (
+                                <Badge variant="outline" className="text-xs text-red-500 border-red-200">
+                                  Wajib
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <Switch
@@ -923,15 +1221,26 @@ export function AdminSurvey() {
                   {serviceTypes.map((type) => (
                     <div
                       key={type.id}
-                      className={`flex items-center justify-between p-4 rounded-lg border ${
-                        type.is_active ? 'bg-card' : 'bg-muted/30 opacity-60'
+                      className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                        type.is_active ? 'bg-card hover:shadow-md' : 'bg-muted/30 opacity-60'
                       }`}
                     >
-                      <div>
-                        <p className="font-medium">{type.name}</p>
-                        {!type.is_active && (
-                          <p className="text-sm text-muted-foreground">Nonaktif</p>
-                        )}
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center",
+                          type.is_active ? "bg-blue-100 dark:bg-blue-900/30" : "bg-slate-100 dark:bg-slate-800"
+                        )}>
+                          <Building2 className={cn(
+                            "w-5 h-5",
+                            type.is_active ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
+                          )} />
+                        </div>
+                        <div>
+                          <p className="font-medium">{type.name}</p>
+                          {!type.is_active && (
+                            <Badge variant="secondary" className="text-xs mt-1">Nonaktif</Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Switch

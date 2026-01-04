@@ -620,6 +620,15 @@ export const api = {
           return response.data;
         },
 
+        questionStats: async (params?: {
+          start_date?: string;
+          end_date?: string;
+          service_type_id?: number;
+        }): Promise<BackendQuestionStatsResponse> => {
+          const response = await apiClient.get<BackendQuestionStatsResponse>('/api/v1/admin/survey/stats/questions', { params });
+          return response.data;
+        },
+
         export: async (params?: {
           start_date?: string;
           end_date?: string;
@@ -674,6 +683,6 @@ export const api = {
 
 // Import types for API
 import type { BackendGuestBookListResponse } from '@/types/guestbook';
-import type { BackendServiceType, BackendSurveyQuestion, BackendSurveyResponseList, BackendSurveyStats } from '@/types/survey';
+import type { BackendServiceType, BackendSurveyQuestion, BackendSurveyResponseList, BackendSurveyStats, BackendQuestionStatsResponse } from '@/types/survey';
 
 export default api;

@@ -27,6 +27,15 @@ export const SATISFACTION_COLORS: Record<SatisfactionRating, string> = {
   sangat_tidak_puas: 'bg-red-500',
 };
 
+// Color hex untuk SVG (karena SVG tidak support Tailwind classes)
+export const SATISFACTION_COLOR_HEX: Record<SatisfactionRating, string> = {
+  sangat_puas: '#22c55e',
+  puas: '#3b82f6',
+  cukup_puas: '#eab308',
+  tidak_puas: '#f97316',
+  sangat_tidak_puas: '#ef4444',
+};
+
 // Jenis Layanan
 export interface ServiceType {
   id: number;
@@ -133,4 +142,26 @@ export interface BackendSurveyStats {
     sendiri: number;
     diwakilkan: number;
   };
+}
+
+// Per-Question Stats Types
+export interface TextFeedbackItem {
+  response_id: number;
+  answer: string;
+  service_type_name: string;
+  submitted_at: string;
+}
+
+export interface QuestionStatistics {
+  question_id: number;
+  question_text: string;
+  question_type: QuestionType;
+  response_count: number;
+  rating_distribution?: Record<SatisfactionRating, number>;
+  text_responses?: TextFeedbackItem[];
+}
+
+export interface BackendQuestionStatsResponse {
+  questions: QuestionStatistics[];
+  total_responses: number;
 }

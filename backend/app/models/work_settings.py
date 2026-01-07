@@ -11,6 +11,7 @@ class WorkSettings(Base):
     village_name = Column(String(200), nullable=False, default="Desa")
     officer_name = Column(String(200), nullable=True)
     logo_url = Column(String(500), nullable=True)
+    background_url = Column(String(500), nullable=True)  # Background image for landing pages
     check_in_start = Column(Time, nullable=False, default=time(7, 0))
     check_in_end = Column(Time, nullable=False, default=time(8, 0))
     late_threshold_minutes = Column(Integer, nullable=False, default=15)

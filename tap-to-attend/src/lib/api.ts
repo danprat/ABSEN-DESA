@@ -119,6 +119,7 @@ export interface BackendWorkSettings {
   village_name: string;
   officer_name: string | null;
   logo_url: string | null;
+  background_url: string | null;
   check_in_start: string;
   check_in_end: string;
   late_threshold_minutes: number;
@@ -178,6 +179,34 @@ export interface BackendAuditLogListResponse {
   total: number;
   page: number;
   page_size: number;
+}
+
+// Backend admin management
+export interface BackendAdmin {
+  id: number;
+  username: string;
+  name: string;
+  role: 'admin' | 'kepala_desa';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BackendAdminListResponse {
+  items: BackendAdmin[];
+  total: number;
+}
+
+export interface BackendAdminCreate {
+  username: string;
+  name: string;
+  password: string;
+  role: 'admin' | 'kepala_desa';
+}
+
+export interface BackendAdminUpdate {
+  username?: string;
+  name?: string;
+  role?: 'admin' | 'kepala_desa';
 }
 
 // Backend monthly report
@@ -245,6 +274,7 @@ export interface PublicSettingsResponse {
   village_name: string;
   officer_name: string | null;
   logo_url: string | null;
+  background_url: string | null;
   today_schedule: PublicTodaySchedule | null;
 }
 
@@ -444,6 +474,20 @@ export const api = {
         return response.data;
       },
 
+      uploadBackground: async (file: File): Promise<{ message: string; background_url: string }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await apiClient.post('/api/v1/admin/settings/background', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+      },
+
+      deleteBackground: async (): Promise<{ message: string }> => {
+        const response = await apiClient.delete('/api/v1/admin/settings/background');
+        return response.data;
+      },
+
       holidays: {
         list: async (params?: { year?: number }): Promise<BackendHolidayListResponse> => {
           const response = await apiClient.get<BackendHolidayListResponse>('/api/v1/admin/settings/holidays', { params });
@@ -506,6 +550,27 @@ export const api = {
       }): Promise<BackendAuditLogListResponse> => {
         const response = await apiClient.get<BackendAuditLogListResponse>('/api/v1/admin/audit-logs', { params });
         return response.data;
+      },
+    },
+
+    admins: {
+      list: async (): Promise<BackendAdminListResponse> => {
+        const response = await apiClient.get<BackendAdminListResponse>('/api/v1/admin/admins');
+        return response.data;
+      },
+
+      create: async (data: BackendAdminCreate): Promise<BackendAdmin> => {
+        const response = await apiClient.post<BackendAdmin>('/api/v1/admin/admins', data);
+        return response.data;
+      },
+
+      update: async (id: number, data: BackendAdminUpdate): Promise<BackendAdmin> => {
+        const response = await apiClient.patch<BackendAdmin>(`/api/v1/admin/admins/${id}`, data);
+        return response.data;
+      },
+
+      delete: async (id: number): Promise<void> => {
+        await apiClient.delete(`/api/v1/admin/admins/${id}`);
       },
     },
 

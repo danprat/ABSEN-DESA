@@ -5,6 +5,8 @@ import { Header } from '@/components/Header';
 import { useSettings } from '@/hooks/useSettings';
 import { Button } from '@/components/ui/button';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 const menuItems = [
   {
     id: 'absen',
@@ -28,9 +30,20 @@ const menuItems = [
 
 const Pegawai = () => {
   const { settings } = useSettings();
+  const hasBackground = !!settings.backgroundUrl;
 
   return (
-    <div className="min-h-screen h-screen flex flex-col bg-gradient-to-br from-background via-primary/5 to-background overflow-hidden">
+    <div className={`min-h-screen h-screen flex flex-col overflow-hidden relative ${hasBackground ? 'bg-transparent' : 'bg-gradient-to-br from-background via-primary/5 to-background'}`}>
+      {/* Background Image Layer */}
+      {hasBackground && (
+        <div
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${API_BASE_URL}${settings.backgroundUrl})` }}
+        >
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
+      )}
+
       <Header
         villageName={settings.villageName}
         officerName={settings.officerName}
@@ -52,15 +65,15 @@ const Pegawai = () => {
             className="text-center mb-3 sm:mb-4 md:mb-6 lg:mb-8 landscape:mb-4"
           >
             <Link to="/">
-              <Button variant="ghost" size="sm" className="mb-2 sm:mb-3 landscape:mb-1">
+              <Button variant="ghost" size="sm" className={`mb-2 sm:mb-3 landscape:mb-1 ${hasBackground ? 'text-white hover:bg-white/20' : ''}`}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Kembali
               </Button>
             </Link>
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-1 sm:mb-2">
+            <h1 className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2 ${hasBackground ? 'text-white drop-shadow-lg' : 'text-foreground'}`}>
               Menu Pegawai
             </h1>
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground">Pilih layanan pegawai</p>
+            <p className={`text-sm sm:text-base md:text-lg ${hasBackground ? 'text-white/90 drop-shadow' : 'text-muted-foreground'}`}>Pilih layanan pegawai</p>
           </motion.div>
 
           {/* Menu Grid */}
@@ -99,13 +112,13 @@ const Pegawai = () => {
 
       {/* Footer */}
       <footer className="p-1.5 sm:p-2 md:p-3 text-center">
-        <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">
-          Dibuat oleh <span className="font-medium text-foreground">Dany Pratmanto</span> · 
+        <p className={`text-[10px] sm:text-xs md:text-sm ${hasBackground ? 'text-white/70' : 'text-muted-foreground'}`}>
+          Dibuat oleh <span className={`font-medium ${hasBackground ? 'text-white' : 'text-foreground'}`}>Dany Pratmanto</span> ·
           <a
             href="https://wa.me/628974041777"
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-1 text-primary hover:underline"
+            className={`ml-1 hover:underline ${hasBackground ? 'text-white/90' : 'text-primary'}`}
           >
             WA 0897 4041 777
           </a>

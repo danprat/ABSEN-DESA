@@ -5,12 +5,14 @@ export interface AppSettings {
   villageName: string;
   officerName: string;
   logoUrl: string | null;
+  backgroundUrl: string | null;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   villageName: 'Desa',
   officerName: 'Admin',
   logoUrl: null,
+  backgroundUrl: null,
 };
 
 export function useSettings() {
@@ -25,6 +27,7 @@ export function useSettings() {
           villageName: data.village_name,
           officerName: data.officer_name || 'Admin',
           logoUrl: data.logo_url || null,
+          backgroundUrl: data.background_url || null,
         });
       } catch {
         // Use defaults if settings fetch fails

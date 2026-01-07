@@ -4,6 +4,8 @@ import { Users, Globe } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useSettings } from '@/hooks/useSettings';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 const menuItems = [
   {
     id: 'pegawai',
@@ -27,9 +29,20 @@ const menuItems = [
 
 const Index = () => {
   const { settings } = useSettings();
+  const hasBackground = !!settings.backgroundUrl;
 
   return (
-    <div className="min-h-screen h-screen flex flex-col bg-gradient-to-br from-background via-primary/5 to-background overflow-hidden">
+    <div className={`min-h-screen h-screen flex flex-col overflow-hidden relative ${hasBackground ? 'bg-transparent' : 'bg-gradient-to-br from-background via-primary/5 to-background'}`}>
+      {/* Background Image Layer */}
+      {hasBackground && (
+        <div
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${API_BASE_URL}${settings.backgroundUrl})` }}
+        >
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
+      )}
+
       <Header
         villageName={settings.villageName}
         officerName={settings.officerName}
@@ -50,10 +63,10 @@ const Index = () => {
             transition={{ delay: 0.2 }}
             className="text-center mb-3 sm:mb-4 md:mb-6 lg:mb-8 landscape:mb-4"
           >
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-1 sm:mb-2">
+            <h1 className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2 ${hasBackground ? 'text-white drop-shadow-lg' : 'text-foreground'}`}>
               Sistem Absensi dan Layanan Desa
             </h1>
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground">Pilih menu layanan</p>
+            <p className={`text-sm sm:text-base md:text-lg ${hasBackground ? 'text-white/90 drop-shadow' : 'text-muted-foreground'}`}>Pilih menu layanan</p>
           </motion.div>
 
           {/* Menu Grid - 2 columns for 2 main menus */}
@@ -92,13 +105,13 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="p-1.5 sm:p-2 md:p-3 text-center landscape:py-1">
-        <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">
-          Dibuat oleh <span className="font-medium text-foreground">Dany Pratmanto</span> · 
+        <p className={`text-[10px] sm:text-xs md:text-sm ${hasBackground ? 'text-white/70' : 'text-muted-foreground'}`}>
+          Dibuat oleh <span className={`font-medium ${hasBackground ? 'text-white' : 'text-foreground'}`}>Dany Pratmanto</span> ·
           <a
             href="https://wa.me/628974041777"
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-1 text-primary hover:underline"
+            className={`ml-1 hover:underline ${hasBackground ? 'text-white/90' : 'text-primary'}`}
           >
             WA 0897 4041 777
           </a>

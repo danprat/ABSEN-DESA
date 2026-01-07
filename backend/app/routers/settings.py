@@ -189,6 +189,125 @@ def delete_logo(
     return {"message": "Logo berhasil dihapus"}
 
 
+@router.post("/background", response_model=dict)
+async def upload_background(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(require_admin_role)
+):
+    """Upload background image for landing pages"""
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/jpg", "image/png"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File harus berupa gambar (jpg atau png)"
+        )
+
+    # Read file data
+    image_data = await file.read()
+
+    # Check file size (max 5MB)
+    if len(image_data) > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ukuran file maksimal 5MB"
+        )
+
+    # Create uploads/backgrounds directory if not exists
+    upload_dir = "uploads/backgrounds"
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Generate unique filename
+    ext = file.filename.split(".")[-1] if file.filename else "jpg"
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = os.path.join(upload_dir, filename)
+
+    # Get current settings to delete old background if exists
+    settings = db.query(WorkSettings).first()
+    if not settings:
+        settings = WorkSettings()
+        db.add(settings)
+
+    # Delete old background file if exists
+    if settings.background_url:
+        old_filepath = settings.background_url.lstrip("/")
+        if os.path.exists(old_filepath):
+            try:
+                os.remove(old_filepath)
+            except Exception:
+                pass  # Continue even if deletion fails
+
+    # Save new file
+    with open(filepath, "wb") as f:
+        f.write(image_data)
+
+    # Update background_url in database
+    background_url = f"/uploads/backgrounds/{filename}"
+    settings.background_url = background_url
+    db.commit()
+    db.refresh(settings)
+
+    # Log audit
+    log_audit(
+        db=db,
+        action=AuditAction.UPDATE,
+        entity_type=EntityType.SETTINGS,
+        entity_id=settings.id,
+        description="Mengupload background halaman utama",
+        performed_by=admin.name,
+        details={"background_url": background_url}
+    )
+
+    return {
+        "message": "Background berhasil diupload",
+        "background_url": background_url
+    }
+
+
+@router.delete("/background", status_code=status.HTTP_200_OK)
+def delete_background(
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(require_admin_role)
+):
+    """Delete background image"""
+    settings = db.query(WorkSettings).first()
+    if not settings or not settings.background_url:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Background tidak ditemukan"
+        )
+
+    # Delete file from disk
+    filepath = settings.background_url.lstrip("/")
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Gagal menghapus file background: {str(e)}"
+            )
+
+    # Set background_url to null
+    old_background_url = settings.background_url
+    settings.background_url = None
+    db.commit()
+
+    # Log audit
+    log_audit(
+        db=db,
+        action=AuditAction.DELETE,
+        entity_type=EntityType.SETTINGS,
+        entity_id=settings.id,
+        description="Menghapus background halaman utama",
+        performed_by=admin.name,
+        details={"old_background_url": old_background_url}
+    )
+
+    return {"message": "Background berhasil dihapus"}
+
+
 @router.get("/holidays", response_model=HolidayListResponse)
 def list_holidays(
     year: Optional[int] = Query(None),

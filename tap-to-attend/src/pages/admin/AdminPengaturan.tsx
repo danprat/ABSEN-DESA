@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Save, Clock, Calendar, Building2, User, Loader2, Plus, Trash2, Lock, Upload, RefreshCw, Undo2, ScanFace } from 'lucide-react';
+import { Save, Clock, Calendar, Building2, User, Loader2, Plus, Trash2, Lock, Upload, RefreshCw, Undo2, ScanFace, Users, Edit2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { api, BackendWorkSettings, BackendHoliday, BackendDailySchedule } from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { api, BackendWorkSettings, BackendHoliday, BackendDailySchedule, BackendAdmin } from '@/lib/api';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,10 +56,35 @@ export function AdminPengaturan() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isDeletingLogo, setIsDeletingLogo] = useState(false);
+  const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
+  const [isUploadingBackground, setIsUploadingBackground] = useState(false);
+  const [isDeletingBackground, setIsDeletingBackground] = useState(false);
   const [isSyncingHolidays, setIsSyncingHolidays] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [excludedHolidays, setExcludedHolidays] = useState<BackendHoliday[]>([]);
   const [isExcludedDialogOpen, setIsExcludedDialogOpen] = useState(false);
+
+  // Admin Management State
+  const [admins, setAdmins] = useState<BackendAdmin[]>([]);
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
+  const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
+  const [isEditAdminDialogOpen, setIsEditAdminDialogOpen] = useState(false);
+  const [isDeleteAdminDialogOpen, setIsDeleteAdminDialogOpen] = useState(false);
+  const [selectedAdmin, setSelectedAdmin] = useState<BackendAdmin | null>(null);
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+  const [isUpdatingAdmin, setIsUpdatingAdmin] = useState(false);
+  const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
+  const [newAdminData, setNewAdminData] = useState({
+    username: '',
+    name: '',
+    password: '',
+    role: 'admin' as 'admin' | 'kepala_desa',
+  });
+  const [editAdminData, setEditAdminData] = useState({
+    username: '',
+    name: '',
+    role: 'admin' as 'admin' | 'kepala_desa',
+  });
 
   const [formData, setFormData] = useState({
     village_name: '',
@@ -171,6 +213,100 @@ export function AdminPengaturan() {
     }
   };
 
+  // Admin Management Functions
+  const fetchAdmins = async () => {
+    try {
+      setIsLoadingAdmins(true);
+      const data = await api.admin.admins.list();
+      setAdmins(data.items);
+    } catch (error) {
+      console.error('Failed to fetch admins:', error);
+      toast.error('Gagal memuat daftar admin');
+    } finally {
+      setIsLoadingAdmins(false);
+    }
+  };
+
+  const handleCreateAdmin = async () => {
+    if (!newAdminData.username || !newAdminData.name || !newAdminData.password) {
+      toast.error('Semua field harus diisi');
+      return;
+    }
+
+    if (newAdminData.password.length < 8) {
+      toast.error('Password minimal 8 karakter');
+      return;
+    }
+
+    try {
+      setIsCreatingAdmin(true);
+      await api.admin.admins.create(newAdminData);
+      toast.success('Admin berhasil ditambahkan');
+      setNewAdminData({ username: '', name: '', password: '', role: 'admin' });
+      setIsAdminDialogOpen(false);
+      fetchAdmins();
+    } catch (error: unknown) {
+      console.error('Failed to create admin:', error);
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Gagal menambahkan admin');
+    } finally {
+      setIsCreatingAdmin(false);
+    }
+  };
+
+  const handleEditAdmin = (admin: BackendAdmin) => {
+    setSelectedAdmin(admin);
+    setEditAdminData({
+      username: admin.username,
+      name: admin.name,
+      role: admin.role,
+    });
+    setIsEditAdminDialogOpen(true);
+  };
+
+  const handleUpdateAdmin = async () => {
+    if (!selectedAdmin) return;
+
+    if (!editAdminData.username || !editAdminData.name) {
+      toast.error('Username dan nama harus diisi');
+      return;
+    }
+
+    try {
+      setIsUpdatingAdmin(true);
+      await api.admin.admins.update(selectedAdmin.id, editAdminData);
+      toast.success('Admin berhasil diupdate');
+      setIsEditAdminDialogOpen(false);
+      setSelectedAdmin(null);
+      fetchAdmins();
+    } catch (error: unknown) {
+      console.error('Failed to update admin:', error);
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Gagal mengupdate admin');
+    } finally {
+      setIsUpdatingAdmin(false);
+    }
+  };
+
+  const handleDeleteAdmin = async () => {
+    if (!selectedAdmin) return;
+
+    try {
+      setIsDeletingAdmin(true);
+      await api.admin.admins.delete(selectedAdmin.id);
+      toast.success('Admin berhasil dihapus');
+      setIsDeleteAdminDialogOpen(false);
+      setSelectedAdmin(null);
+      fetchAdmins();
+    } catch (error: unknown) {
+      console.error('Failed to delete admin:', error);
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Gagal menghapus admin');
+    } finally {
+      setIsDeletingAdmin(false);
+    }
+  };
+
   const handleChangePassword = async () => {
     if (!passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password) {
       toast.error('Semua field harus diisi');
@@ -233,6 +369,42 @@ export function AdminPengaturan() {
       toast.error('Gagal menghapus logo');
     } finally {
       setIsDeletingLogo(false);
+    }
+  };
+
+  const handleUploadBackground = async () => {
+    if (!backgroundFile) {
+      toast.error('Pilih file background terlebih dahulu');
+      return;
+    }
+
+    try {
+      setIsUploadingBackground(true);
+      await api.admin.settings.uploadBackground(backgroundFile);
+      toast.success('Background berhasil diupload');
+      setBackgroundFile(null);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to upload background:', error);
+      toast.error('Gagal mengupload background');
+    } finally {
+      setIsUploadingBackground(false);
+    }
+  };
+
+  const handleDeleteBackground = async () => {
+    if (!confirm('Yakin ingin menghapus background?')) return;
+
+    try {
+      setIsDeletingBackground(true);
+      await api.admin.settings.deleteBackground();
+      toast.success('Background berhasil dihapus');
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete background:', error);
+      toast.error('Gagal menghapus background');
+    } finally {
+      setIsDeletingBackground(false);
     }
   };
 
@@ -322,6 +494,15 @@ export function AdminPengaturan() {
           >
             Keamanan
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger
+              value="manajemen-admin"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 font-medium transition-all hover:text-primary whitespace-nowrap"
+              onClick={() => fetchAdmins()}
+            >
+              Manajemen Admin
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Tab 1: Umum - Informasi Organisasi + Logo */}
@@ -420,6 +601,76 @@ export function AdminPengaturan() {
                       </Button>
                       <p className="text-xs text-muted-foreground">
                         Format: JPG, PNG, atau SVG. Maksimal file size 2MB.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Background Upload Section */}
+              <div className="space-y-4">
+                <Label>Background Halaman Utama</Label>
+                <p className="text-sm text-muted-foreground">
+                  Gambar background untuk halaman landing (Beranda, Pegawai, Umum)
+                </p>
+                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                  {/* Current Background Preview */}
+                  {settings?.background_url ? (
+                    <div className="relative group overflow-hidden rounded-lg border bg-background w-48 h-32 flex items-center justify-center">
+                      <img
+                        src={`${API_BASE_URL}${settings.background_url}`}
+                        alt="Background"
+                        className="w-full h-full object-cover"
+                      />
+                      {isAdmin && (
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={handleDeleteBackground}
+                            disabled={isDeletingBackground}
+                            className="h-8 w-8"
+                          >
+                            {isDeletingBackground ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-48 h-32 rounded-lg border border-dashed flex items-center justify-center text-muted-foreground bg-secondary/10">
+                      <span className="text-xs text-center px-2">Tidak ada background</span>
+                    </div>
+                  )}
+
+                  {isAdmin && (
+                    <div className="flex-1 max-w-sm space-y-3">
+                      <div className="flex gap-2">
+                        <Input
+                          type="file"
+                          accept="image/jpeg,image/png"
+                          onChange={(e) => setBackgroundFile(e.target.files?.[0] || null)}
+                          className="flex-1 file:text-primary"
+                        />
+                      </div>
+                      <Button
+                        onClick={handleUploadBackground}
+                        disabled={!backgroundFile || isUploadingBackground}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        {isUploadingBackground ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <Upload className="w-4 h-4 mr-2" />
+                        )}
+                        Upload Background
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Format: JPG atau PNG. Maksimal 5MB. Rekomendasi: 1920x1080 (16:9)
                       </p>
                     </div>
                   )}
@@ -1107,6 +1358,293 @@ export function AdminPengaturan() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Tab 5: Manajemen Admin */}
+        {isAdmin && (
+          <TabsContent value="manajemen-admin" className="space-y-6">
+            <Card className="border-none shadow-sm bg-card/50">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Users className="w-5 h-5 text-primary" />
+                    Manajemen Admin
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Kelola akun admin dan kepala desa
+                  </p>
+                </div>
+                <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Admin
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Tambah Admin Baru</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new_admin_username">Username</Label>
+                        <Input
+                          id="new_admin_username"
+                          value={newAdminData.username}
+                          onChange={(e) => setNewAdminData({ ...newAdminData, username: e.target.value })}
+                          placeholder="Masukkan username"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new_admin_name">Nama Lengkap</Label>
+                        <Input
+                          id="new_admin_name"
+                          value={newAdminData.name}
+                          onChange={(e) => setNewAdminData({ ...newAdminData, name: e.target.value })}
+                          placeholder="Masukkan nama lengkap"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new_admin_password">Password</Label>
+                        <Input
+                          id="new_admin_password"
+                          type="password"
+                          value={newAdminData.password}
+                          onChange={(e) => setNewAdminData({ ...newAdminData, password: e.target.value })}
+                          placeholder="Minimal 8 karakter"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new_admin_role">Role</Label>
+                        <Select
+                          value={newAdminData.role}
+                          onValueChange={(value: 'admin' | 'kepala_desa') => setNewAdminData({ ...newAdminData, role: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin (Full Access)</SelectItem>
+                            <SelectItem value="kepala_desa">Kepala Desa (Read Only)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" onClick={() => setIsAdminDialogOpen(false)}>
+                          Batal
+                        </Button>
+                        <Button onClick={handleCreateAdmin} disabled={isCreatingAdmin}>
+                          {isCreatingAdmin && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                          Simpan
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {isLoadingAdmins ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : admins.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                    <p>Belum ada data admin</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Desktop Table */}
+                    <div className="hidden md:block rounded-xl border overflow-hidden bg-background">
+                      <table className="w-full">
+                        <thead className="bg-muted/50 border-b">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Username</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Nama</th>
+                            <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Role</th>
+                            <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Dibuat</th>
+                            <th className="px-4 py-3 w-24"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {admins.map((admin) => (
+                            <tr key={admin.id} className="hover:bg-muted/30 transition-colors group">
+                              <td className="px-4 py-3 font-medium">{admin.username}</td>
+                              <td className="px-4 py-3">{admin.name}</td>
+                              <td className="px-4 py-3 text-center">
+                                {admin.role === 'admin' ? (
+                                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                    Admin
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                                    Kepala Desa
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-center text-sm text-muted-foreground">
+                                {new Date(admin.created_at).toLocaleDateString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditAdmin(admin)}
+                                    className="h-8 w-8"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      setSelectedAdmin(admin);
+                                      setIsDeleteAdminDialogOpen(true);
+                                    }}
+                                    className="h-8 w-8 hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="md:hidden space-y-3">
+                      {admins.map((admin) => (
+                        <div key={admin.id} className="p-4 rounded-xl border bg-background">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground">{admin.name}</p>
+                              <p className="text-sm text-muted-foreground">@{admin.username}</p>
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {admin.role === 'admin' ? (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                    Admin
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                                    Kepala Desa
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditAdmin(admin)}
+                                className="h-8 w-8"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setSelectedAdmin(admin);
+                                  setIsDeleteAdminDialogOpen(true);
+                                }}
+                                className="h-8 w-8 hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Edit Admin Dialog */}
+            <Dialog open={isEditAdminDialogOpen} onOpenChange={setIsEditAdminDialogOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit Admin</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_admin_username">Username</Label>
+                    <Input
+                      id="edit_admin_username"
+                      value={editAdminData.username}
+                      onChange={(e) => setEditAdminData({ ...editAdminData, username: e.target.value })}
+                      placeholder="Masukkan username"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_admin_name">Nama Lengkap</Label>
+                    <Input
+                      id="edit_admin_name"
+                      value={editAdminData.name}
+                      onChange={(e) => setEditAdminData({ ...editAdminData, name: e.target.value })}
+                      placeholder="Masukkan nama lengkap"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_admin_role">Role</Label>
+                    <Select
+                      value={editAdminData.role}
+                      onValueChange={(value: 'admin' | 'kepala_desa') => setEditAdminData({ ...editAdminData, role: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin (Full Access)</SelectItem>
+                        <SelectItem value="kepala_desa">Kepala Desa (Read Only)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" onClick={() => setIsEditAdminDialogOpen(false)}>
+                      Batal
+                    </Button>
+                    <Button onClick={handleUpdateAdmin} disabled={isUpdatingAdmin}>
+                      {isUpdatingAdmin && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                      Simpan
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Admin Confirmation */}
+            <AlertDialog open={isDeleteAdminDialogOpen} onOpenChange={setIsDeleteAdminDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus Admin?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apakah Anda yakin ingin menghapus admin <strong>{selectedAdmin?.name}</strong> (@{selectedAdmin?.username})?
+                    Tindakan ini tidak dapat dibatalkan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAdmin}
+                    disabled={isDeletingAdmin}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeletingAdmin && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                    Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </TabsContent>
+        )}
       </Tabs >
     </motion.div >
   );

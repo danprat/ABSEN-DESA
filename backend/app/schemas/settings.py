@@ -8,6 +8,7 @@ class WorkSettingsResponse(BaseModel):
     village_name: str
     officer_name: Optional[str]
     logo_url: Optional[str]
+    background_url: Optional[str]
     check_in_start: time
     check_in_end: time
     late_threshold_minutes: int
@@ -24,6 +25,7 @@ class WorkSettingsUpdate(BaseModel):
     village_name: Optional[str] = None
     officer_name: Optional[str] = None
     logo_url: Optional[str] = None
+    background_url: Optional[str] = None
     check_in_start: Optional[time] = None
     check_in_end: Optional[time] = None
     late_threshold_minutes: Optional[int] = None

@@ -23,6 +23,7 @@ class PublicSettingsResponse(BaseModel):
     village_name: str
     officer_name: Optional[str]
     logo_url: Optional[str]
+    background_url: Optional[str]
     today_schedule: Optional[TodayScheduleResponse]
 
 
@@ -66,5 +67,6 @@ def get_public_settings(db: Session = Depends(get_db)):
         village_name=settings.village_name,
         officer_name=settings.officer_name,
         logo_url=settings.logo_url,
+        background_url=settings.background_url,
         today_schedule=today_schedule
     )

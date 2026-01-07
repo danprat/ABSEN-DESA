@@ -57,7 +57,7 @@ const Index = () => {
           </motion.div>
 
           {/* Menu Grid - 2 columns for 2 main menus */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:gap-8 max-w-3xl mx-auto w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 landscape:grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:gap-8 landscape:gap-4 max-w-3xl mx-auto w-full">
             {menuItems.map((item, index) => (
               <motion.div
                 key={item.id}
@@ -67,16 +67,16 @@ const Index = () => {
                 className="h-full"
               >
                 <Link to={item.to}>
-                  <div className={`group relative overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl bg-gradient-to-br ${item.color} p-4 sm:p-6 md:p-8 lg:p-10 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] h-32 sm:h-40 md:h-48 lg:h-56 flex flex-col justify-between cursor-pointer`}>
+                  <div className={`group relative overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl bg-gradient-to-br ${item.color} p-4 sm:p-6 md:p-8 lg:p-10 landscape:p-4 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] h-32 sm:h-40 md:h-48 lg:h-56 landscape:h-auto landscape:min-h-[120px] flex flex-col justify-between cursor-pointer`}>
                     {/* Icon */}
-                    <div className={`w-12 h-12 sm:w-14 sm:h-14 md:w-18 md:h-18 lg:w-20 lg:h-20 rounded-lg sm:rounded-xl md:rounded-2xl ${item.iconBg} backdrop-blur-sm flex items-center justify-center transition-transform group-hover:scale-110`}>
-                      <item.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 lg:w-10 lg:h-10 text-white" strokeWidth={2} />
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 md:w-18 md:h-18 lg:w-20 lg:h-20 landscape:w-14 landscape:h-14 rounded-lg sm:rounded-xl md:rounded-2xl ${item.iconBg} backdrop-blur-sm flex items-center justify-center transition-transform group-hover:scale-110`}>
+                      <item.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 lg:w-10 lg:h-10 landscape:w-7 landscape:h-7 text-white" strokeWidth={2} />
                     </div>
 
                     {/* Text */}
-                    <div className="space-y-1">
-                      <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-tight">{item.title}</h3>
-                      <p className="text-white/90 text-xs sm:text-sm md:text-base lg:text-lg font-medium">{item.subtitle}</p>
+                    <div className="space-y-1 landscape:space-y-0.5">
+                      <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl landscape:text-xl font-bold leading-tight">{item.title}</h3>
+                      <p className="text-white/90 text-xs sm:text-sm md:text-base lg:text-lg landscape:text-sm font-medium">{item.subtitle}</p>
                     </div>
 
                     {/* Decorative elements */}

@@ -1,31 +1,32 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Globe } from 'lucide-react';
+import { User, ClipboardList, ArrowLeft } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useSettings } from '@/hooks/useSettings';
+import { Button } from '@/components/ui/button';
 
 const menuItems = [
   {
-    id: 'pegawai',
-    title: 'PEGAWAI',
-    subtitle: 'Absen & Daftar Hadir',
-    icon: Users,
-    to: '/pegawai',
-    color: 'from-green-600 to-green-700',
-    iconBg: 'bg-green-500/20',
+    id: 'absen',
+    title: 'Absen',
+    subtitle: 'Pegawai',
+    icon: User,
+    to: '/absen',
+    color: 'from-violet-500 to-violet-600',
+    iconBg: 'bg-violet-500/20',
   },
   {
-    id: 'umum',
-    title: 'UMUM',
-    subtitle: 'Buku Tamu & Survey',
-    icon: Globe,
-    to: '/umum',
-    color: 'from-blue-600 to-blue-700',
-    iconBg: 'bg-blue-500/20',
+    id: 'daftar',
+    title: 'Daftar',
+    subtitle: 'Hadir',
+    icon: ClipboardList,
+    to: '/daftar-hadir',
+    color: 'from-orange-500 to-orange-600',
+    iconBg: 'bg-orange-500/20',
   },
 ];
 
-const Index = () => {
+const Pegawai = () => {
   const { settings } = useSettings();
 
   return (
@@ -41,22 +42,28 @@ const Index = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-4xl flex flex-col justify-center h-full"
+          className="w-full max-w-3xl flex flex-col justify-center h-full"
         >
-          {/* Title */}
+          {/* Back Button & Title */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-center mb-3 sm:mb-4 md:mb-6 lg:mb-8 landscape:mb-4"
+            className="text-center mb-3 sm:mb-4 md:mb-6 lg:mb-8"
           >
+            <Link to="/">
+              <Button variant="ghost" size="sm" className="mb-2 sm:mb-3">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Kembali
+              </Button>
+            </Link>
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-1 sm:mb-2">
-              Sistem Absensi dan Layanan Desa
+              Menu Pegawai
             </h1>
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground">Pilih menu layanan</p>
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground">Pilih layanan pegawai</p>
           </motion.div>
 
-          {/* Menu Grid - 2 columns for 2 main menus */}
+          {/* Menu Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:gap-8 max-w-3xl mx-auto w-full">
             {menuItems.map((item, index) => (
               <motion.div
@@ -91,7 +98,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="p-1.5 sm:p-2 md:p-3 text-center landscape:py-1">
+      <footer className="p-1.5 sm:p-2 md:p-3 text-center">
         <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">
           Dibuat oleh <span className="font-medium text-foreground">Dany Pratmanto</span> · 
           <a
@@ -108,4 +115,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Pegawai;

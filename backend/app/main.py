@@ -6,9 +6,10 @@ import os
 from app.config import get_settings
 from app.database import engine, Base
 from app.routers import (
-    auth, employees, face, attendance, admin_attendance, 
+    auth, employees, face, attendance, admin_attendance,
     reports, settings, audit, public,
-    guestbook, survey, admin_guestbook, admin_survey
+    guestbook, survey, admin_guestbook, admin_survey,
+    admin_management
 )
 
 settings_config = get_settings()
@@ -45,6 +46,7 @@ app.include_router(guestbook.router, prefix=API_PREFIX)
 app.include_router(survey.router, prefix=API_PREFIX)
 app.include_router(admin_guestbook.router, prefix=API_PREFIX)
 app.include_router(admin_survey.router, prefix=API_PREFIX)
+app.include_router(admin_management.router, prefix=API_PREFIX)
 
 
 @app.on_event("startup")

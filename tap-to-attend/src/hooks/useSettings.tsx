@@ -23,12 +23,15 @@ export function useSettings() {
     const fetchSettings = async () => {
       try {
         const data = await api.public.settings();
+        const villageName = data.village_name || 'Desa';
         setSettings({
-          villageName: data.village_name,
+          villageName,
           officerName: data.officer_name || 'Admin',
           logoUrl: data.logo_url || null,
           backgroundUrl: data.background_url || null,
         });
+        // Update browser tab title with village name
+        document.title = `${villageName} - Sistem Absensi`;
       } catch {
         // Use defaults if settings fetch fails
       } finally {

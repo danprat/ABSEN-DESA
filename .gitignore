@@ -66,3 +66,4 @@ tap-to-attend/dist/
 
 # Submodules (if tap-to-attend should be included as submodule)
 # tap-to-attend/
+.worktrees

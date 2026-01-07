@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
-from app.models.admin import Admin
+from app.models.admin import Admin, AdminRole
 from app.schemas.auth import TokenData
 
 settings = get_settings()
@@ -46,13 +46,28 @@ def get_current_admin(
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
         admin_id: int = payload.get("admin_id")
+        role: str = payload.get("role")
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username, admin_id=admin_id)
+        token_data = TokenData(username=username, admin_id=admin_id, role=role)
     except JWTError:
         raise credentials_exception
-    
+
     admin = db.query(Admin).filter(Admin.id == token_data.admin_id).first()
     if admin is None:
         raise credentials_exception
     return admin
+
+
+def require_admin_role(
+    current_admin: Admin = Depends(get_current_admin)
+) -> Admin:
+    """Dependency to ensure user has admin role (not kepala_desa).
+    Use this for write operations (POST, PATCH, DELETE).
+    """
+    if current_admin.role != AdminRole.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak. Hanya admin yang dapat melakukan operasi ini."
+        )
+    return current_admin

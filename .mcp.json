@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "shadcn-registry-manager": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@reuvenorg/shadcn-registry-manager"
+      ],
+      "env": {
+        "REGISTRY_URL": "https://ui.shadcn.com/r"
+      }
+    }
+  }
+}

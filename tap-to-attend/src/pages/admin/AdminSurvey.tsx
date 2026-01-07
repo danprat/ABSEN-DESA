@@ -46,6 +46,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Skeleton } from '@/components/ui/skeleton';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 import {
   BackendServiceType,
   BackendSurveyQuestion,
@@ -224,12 +225,14 @@ const CustomDonutChart = ({ data }: { data: ChartDataItem[] }) => {
 };
 
 export function AdminSurvey() {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('laporan');
   
   // Laporan state
   const [stats, setStats] = useState<BackendSurveyStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf' | 'xlsx'>('pdf');
   
   // Question stats state
   const [questionStats, setQuestionStats] = useState<BackendQuestionStatsResponse | null>(null);
@@ -401,18 +404,19 @@ export function AdminSurvey() {
         start_date: startDate,
         end_date: endDate,
         service_type_id: filterServiceType !== 'all' ? parseInt(filterServiceType) : undefined,
+        format: exportFormat,
       });
-      
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `survey-kepuasan_${startDate}_${endDate}.csv`;
+      link.download = `survey-kepuasan_${startDate}_${endDate}.${exportFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Berhasil export data survey');
+
+      toast.success(`Berhasil export data survey (${exportFormat.toUpperCase()})`);
     } catch (error) {
       console.error('Failed to export:', error);
       toast.error('Gagal export data');
@@ -625,18 +629,30 @@ export function AdminSurvey() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button 
-                  onClick={handleExport} 
-                  disabled={isExporting} 
-                  className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100"
-                >
-                  {isExporting ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4 mr-2" />
-                  )}
-                  Export CSV
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as 'csv' | 'pdf' | 'xlsx')}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="xlsx">Excel</SelectItem>
+                      <SelectItem value="csv">CSV</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    Export
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1178,68 +1194,70 @@ export function AdminSurvey() {
                 <MessageSquare className="w-5 h-5 text-primary" />
                 Daftar Pertanyaan Survey
               </CardTitle>
-              <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    onClick={() => {
-                      setEditingQuestion(null);
-                      setNewQuestion({ question_text: '', question_type: 'rating', is_required: true });
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Tambah Pertanyaan
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingQuestion ? 'Edit Pertanyaan' : 'Tambah Pertanyaan Baru'}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Teks Pertanyaan</Label>
-                      <Input
-                        value={newQuestion.question_text}
-                        onChange={(e) => setNewQuestion({ ...newQuestion, question_text: e.target.value })}
-                        placeholder="Contoh: Bagaimana kepuasan Anda?"
-                      />
-                    </div>
-                    {!editingQuestion && (
+              {isAdmin && (
+                <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      onClick={() => {
+                        setEditingQuestion(null);
+                        setNewQuestion({ question_text: '', question_type: 'rating', is_required: true });
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Pertanyaan
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingQuestion ? 'Edit Pertanyaan' : 'Tambah Pertanyaan Baru'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label>Tipe Pertanyaan</Label>
-                        <Select
-                          value={newQuestion.question_type}
-                          onValueChange={(value) => setNewQuestion({ ...newQuestion, question_type: value as 'rating' | 'text' })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="rating">Rating (Sangat Puas - Tidak Puas)</SelectItem>
-                            <SelectItem value="text">Teks Bebas</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label>Teks Pertanyaan</Label>
+                        <Input
+                          value={newQuestion.question_text}
+                          onChange={(e) => setNewQuestion({ ...newQuestion, question_text: e.target.value })}
+                          placeholder="Contoh: Bagaimana kepuasan Anda?"
+                        />
                       </div>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <Label>Wajib Diisi</Label>
-                      <Switch
-                        checked={newQuestion.is_required}
-                        onCheckedChange={(checked) => setNewQuestion({ ...newQuestion, is_required: checked })}
-                      />
+                      {!editingQuestion && (
+                        <div className="space-y-2">
+                          <Label>Tipe Pertanyaan</Label>
+                          <Select
+                            value={newQuestion.question_type}
+                            onValueChange={(value) => setNewQuestion({ ...newQuestion, question_type: value as 'rating' | 'text' })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="rating">Rating (Sangat Puas - Tidak Puas)</SelectItem>
+                              <SelectItem value="text">Teks Bebas</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <Label>Wajib Diisi</Label>
+                        <Switch
+                          checked={newQuestion.is_required}
+                          onCheckedChange={(checked) => setNewQuestion({ ...newQuestion, is_required: checked })}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsQuestionDialogOpen(false)}>
-                      Batal
-                    </Button>
-                    <Button onClick={handleSaveQuestion}>
-                      {editingQuestion ? 'Simpan Perubahan' : 'Tambah'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsQuestionDialogOpen(false)}>
+                        Batal
+                      </Button>
+                      <Button onClick={handleSaveQuestion}>
+                        {editingQuestion ? 'Simpan Perubahan' : 'Tambah'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </CardHeader>
             <CardContent>
               {isLoadingQuestions ? (
@@ -1285,49 +1303,53 @@ export function AdminSurvey() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Switch
-                              checked={question.is_active}
-                              onCheckedChange={() => handleToggleQuestion(question)}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setEditingQuestion(question);
-                                setNewQuestion({
-                                  question_text: question.question_text,
-                                  question_type: question.question_type,
-                                  is_required: question.is_required,
-                                });
-                                setIsQuestionDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                  <Trash2 className="w-4 h-4" />
+                            {isAdmin && (
+                              <>
+                                <Switch
+                                  checked={question.is_active}
+                                  onCheckedChange={() => handleToggleQuestion(question)}
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setEditingQuestion(question);
+                                    setNewQuestion({
+                                      question_text: question.question_text,
+                                      question_type: question.question_type,
+                                      is_required: question.is_required,
+                                    });
+                                    setIsQuestionDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4" />
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Hapus Pertanyaan?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Pertanyaan ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Batal</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeleteQuestion(question.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Hapus
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Hapus Pertanyaan?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Pertanyaan ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteQuestion(question.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Hapus
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1347,44 +1369,46 @@ export function AdminSurvey() {
                 <Building2 className="w-5 h-5 text-primary" />
                 Jenis Layanan
               </CardTitle>
-              <Dialog open={isServiceTypeDialogOpen} onOpenChange={setIsServiceTypeDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    onClick={() => {
-                      setEditingServiceType(null);
-                      setNewServiceTypeName('');
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Tambah Layanan
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingServiceType ? 'Edit Jenis Layanan' : 'Tambah Jenis Layanan'}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Nama Jenis Layanan</Label>
-                      <Input
-                        value={newServiceTypeName}
-                        onChange={(e) => setNewServiceTypeName(e.target.value)}
-                        placeholder="Contoh: Kependudukan"
-                      />
+              {isAdmin && (
+                <Dialog open={isServiceTypeDialogOpen} onOpenChange={setIsServiceTypeDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      onClick={() => {
+                        setEditingServiceType(null);
+                        setNewServiceTypeName('');
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Layanan
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingServiceType ? 'Edit Jenis Layanan' : 'Tambah Jenis Layanan'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Nama Jenis Layanan</Label>
+                        <Input
+                          value={newServiceTypeName}
+                          onChange={(e) => setNewServiceTypeName(e.target.value)}
+                          placeholder="Contoh: Kependudukan"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsServiceTypeDialogOpen(false)}>
-                      Batal
-                    </Button>
-                    <Button onClick={handleSaveServiceType}>
-                      {editingServiceType ? 'Simpan Perubahan' : 'Tambah'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsServiceTypeDialogOpen(false)}>
+                        Batal
+                      </Button>
+                      <Button onClick={handleSaveServiceType}>
+                        {editingServiceType ? 'Simpan Perubahan' : 'Tambah'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </CardHeader>
             <CardContent>
               {isLoadingServiceTypes ? (
@@ -1423,45 +1447,49 @@ export function AdminSurvey() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Switch
-                          checked={type.is_active}
-                          onCheckedChange={() => handleToggleServiceType(type)}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingServiceType(type);
-                            setNewServiceTypeName(type.name);
-                            setIsServiceTypeDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                              <Trash2 className="w-4 h-4" />
+                        {isAdmin && (
+                          <>
+                            <Switch
+                              checked={type.is_active}
+                              onCheckedChange={() => handleToggleServiceType(type)}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditingServiceType(type);
+                                setNewServiceTypeName(type.name);
+                                setIsServiceTypeDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Hapus Jenis Layanan?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Jenis layanan "{type.name}" akan dihapus. Pastikan tidak ada survey yang menggunakan jenis layanan ini.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Batal</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteServiceType(type.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Hapus
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Hapus Jenis Layanan?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Jenis layanan "{type.name}" akan dihapus. Pastikan tidak ada survey yang menggunakan jenis layanan ini.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteServiceType(type.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Hapus
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}

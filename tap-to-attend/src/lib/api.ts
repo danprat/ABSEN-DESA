@@ -51,16 +51,17 @@ export interface LoginRequest {
 export interface LoginResponse {
   access_token: string;
   token_type: string;
+  role: string;
 }
 
 // Backend Employee response
 export interface BackendEmployee {
   id: number;
-  nip: string | null;
+  nik: string | null;  // NIK (Nomor Induk Kependudukan)
   name: string;
   position: string;
   phone: string | null;
-  email: string | null;
+  address: string | null;  // Alamat rumah
   photo_url: string | null;
   is_active: boolean;
   face_count: number;
@@ -183,7 +184,7 @@ export interface BackendAuditLogListResponse {
 export interface BackendMonthlyReportItem {
   employee_id: number;
   employee_name: string;
-  employee_nip: string | null;
+  employee_nik: string | null;  // NIK (Nomor Induk Kependudukan)
   employee_position: string;
   total_days: number;
   present_days: number;
@@ -290,12 +291,12 @@ export const api = {
       return response.data;
     },
 
-    create: async (data: { name: string; position: string; nip?: string; phone?: string; email?: string }): Promise<BackendEmployee> => {
+    create: async (data: { name: string; position: string; nik?: string; phone?: string; address?: string }): Promise<BackendEmployee> => {
       const response = await apiClient.post<BackendEmployee>('/api/v1/employees', data);
       return response.data;
     },
 
-    update: async (id: number, data: Partial<{ name: string; position: string; nip: string; phone: string; email: string; is_active: boolean }>): Promise<BackendEmployee> => {
+    update: async (id: number, data: Partial<{ name: string; position: string; nik: string; phone: string; address: string; is_active: boolean }>): Promise<BackendEmployee> => {
       const response = await apiClient.patch<BackendEmployee>(`/api/v1/employees/${id}`, data);
       return response.data;
     },
@@ -399,7 +400,7 @@ export const api = {
         return response.data;
       },
 
-      export: async (params: { month: number; year: number }): Promise<Blob> => {
+      export: async (params: { month: number; year: number; format?: 'csv' | 'pdf' | 'xlsx' }): Promise<Blob> => {
         const response = await apiClient.get('/api/v1/admin/reports/export', {
           params,
           responseType: 'blob',
@@ -523,6 +524,7 @@ export const api = {
       export: async (params?: {
         start_date?: string;
         end_date?: string;
+        format?: 'csv' | 'pdf' | 'xlsx';
       }): Promise<Blob> => {
         const response = await apiClient.get('/api/v1/admin/guest-book/export', {
           params,
@@ -633,6 +635,7 @@ export const api = {
           start_date?: string;
           end_date?: string;
           service_type_id?: number;
+          format?: 'csv' | 'pdf' | 'xlsx';
         }): Promise<Blob> => {
           const response = await apiClient.get('/api/v1/admin/survey/export', {
             params,

@@ -3,9 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { api, authToken, LoginRequest } from '@/lib/api';
 import { toast } from 'sonner';
 
+const ROLE_KEY = 'auth_role';
+
+export const authRole = {
+  get: (): string | null => localStorage.getItem(ROLE_KEY),
+  set: (role: string): void => localStorage.setItem(ROLE_KEY, role),
+  remove: (): void => localStorage.removeItem(ROLE_KEY),
+};
+
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  role: string | null;
+  isAdmin: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
 }
@@ -19,43 +29,51 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [role, setRole] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = () => {
       const token = authToken.get();
+      const savedRole = authRole.get();
       setIsAuthenticated(!!token);
+      setRole(savedRole);
       setIsLoading(false);
     };
 
     checkAuth();
   }, []);
 
+  const isAdmin = role === 'admin';
+
   const login = async (credentials: LoginRequest): Promise<void> => {
     try {
       setIsLoading(true);
       const response = await api.auth.login(credentials);
-      
-      // Store token
+
+      // Store token and role
       authToken.set(response.access_token);
+      authRole.set(response.role);
       setIsAuthenticated(true);
-      
+      setRole(response.role);
+
+      const roleLabel = response.role === 'kepala_desa' ? 'Kepala Desa' : 'Admin';
       toast.success('Login berhasil', {
-        description: 'Selamat datang di panel admin',
+        description: `Selamat datang di panel ${roleLabel}`,
       });
-      
+
       // Redirect to admin dashboard
       navigate('/admin');
     } catch (error) {
       console.error('Login error:', error);
-      
+
       const errorMessage = (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Username atau password salah';
-      
+
       toast.error('Login gagal', {
         description: errorMessage,
       });
-      
+
       throw error;
     } finally {
       setIsLoading(false);
@@ -64,12 +82,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = (): void => {
     authToken.remove();
+    authRole.remove();
     setIsAuthenticated(false);
-    
+    setRole(null);
+
     toast.info('Logout berhasil', {
       description: 'Anda telah keluar dari sistem',
     });
-    
+
     navigate('/login');
   };
 
@@ -78,6 +98,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       value={{
         isAuthenticated,
         isLoading,
+        role,
+        isAdmin,
         login,
         logout,
       }}
@@ -90,11 +112,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 // Hook to use auth context
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  
+
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
+
   return context;
 };
 

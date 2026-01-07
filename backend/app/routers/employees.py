@@ -9,7 +9,7 @@ from app.models.audit_log import AuditAction, EntityType
 from app.schemas.employee import (
     EmployeeCreate, EmployeeUpdate, EmployeeResponse, EmployeeListResponse
 )
-from app.utils.auth import get_current_admin
+from app.utils.auth import get_current_admin, require_admin_role
 from app.utils.audit import log_audit
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
@@ -33,7 +33,7 @@ def list_employees(
         query = query.filter(
             or_(
                 Employee.name.ilike(search_filter),
-                Employee.nip.ilike(search_filter),
+                Employee.nik.ilike(search_filter),
                 Employee.position.ilike(search_filter)
             )
         )
@@ -53,14 +53,14 @@ def list_employees(
 def create_employee(
     data: EmployeeCreate,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
-    if data.nip:
-        existing = db.query(Employee).filter(Employee.nip == data.nip).first()
+    if data.nik:
+        existing = db.query(Employee).filter(Employee.nik == data.nik).first()
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="NIP sudah digunakan"
+                detail="NIK sudah digunakan"
             )
     
     employee = Employee(**data.model_dump())
@@ -99,7 +99,7 @@ def update_employee(
     employee_id: int,
     data: EmployeeUpdate,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     employee = db.query(Employee).filter(Employee.id == employee_id).first()
     if not employee:
@@ -108,12 +108,12 @@ def update_employee(
             detail="Pegawai tidak ditemukan"
         )
     
-    if data.nip and data.nip != employee.nip:
-        existing = db.query(Employee).filter(Employee.nip == data.nip).first()
+    if data.nik and data.nik != employee.nik:
+        existing = db.query(Employee).filter(Employee.nik == data.nik).first()
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="NIP sudah digunakan"
+                detail="NIK sudah digunakan"
             )
     
     update_data = data.model_dump(exclude_unset=True)
@@ -140,7 +140,7 @@ def update_employee(
 def delete_employee(
     employee_id: int,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     employee = db.query(Employee).filter(Employee.id == employee_id).first()
     if not employee:

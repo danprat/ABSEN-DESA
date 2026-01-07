@@ -1,14 +1,14 @@
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime
 
 
 class EmployeeBase(BaseModel):
-    nip: Optional[str] = None
+    nik: Optional[str] = None  # NIK (Nomor Induk Kependudukan)
     name: str
     position: str
     phone: Optional[str] = None
-    email: Optional[EmailStr] = None
+    address: Optional[str] = None  # Alamat rumah
     photo_url: Optional[str] = None
 
 
@@ -17,11 +17,11 @@ class EmployeeCreate(EmployeeBase):
 
 
 class EmployeeUpdate(BaseModel):
-    nip: Optional[str] = None
+    nik: Optional[str] = None
     name: Optional[str] = None
     position: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[EmailStr] = None
+    address: Optional[str] = None
     photo_url: Optional[str] = None
     is_active: Optional[bool] = None
 

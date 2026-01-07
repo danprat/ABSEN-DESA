@@ -13,7 +13,7 @@ from app.schemas.attendance import (
     AttendanceCorrectionRequest, AttendanceTodayItem,
     AttendanceSummary, AttendanceTodayAdminResponse
 )
-from app.utils.auth import get_current_admin
+from app.utils.auth import get_current_admin, require_admin_role
 from app.utils.audit import log_audit
 
 router = APIRouter(prefix="/admin/attendance", tags=["Attendance - Admin"])
@@ -80,7 +80,7 @@ def correct_attendance(
     attendance_id: int,
     data: AttendanceCorrectionRequest,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     attendance = db.query(AttendanceLog).filter(AttendanceLog.id == attendance_id).first()
     if not attendance:

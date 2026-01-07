@@ -5,7 +5,7 @@ from pydantic import BaseModel
 class MonthlyReportItem(BaseModel):
     employee_id: int
     employee_name: str
-    employee_nip: Optional[str]
+    employee_nik: Optional[str]  # NIK (Nomor Induk Kependudukan)
     employee_position: str
     total_days: int
     present_days: int

@@ -1,6 +1,6 @@
 """Admin Survey Router - Protected endpoints"""
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from typing import Optional
@@ -29,9 +29,10 @@ from app.schemas.survey import (
     QuestionStatistics,
     TextFeedbackItem,
 )
-from app.utils.auth import get_current_admin
+from app.utils.auth import get_current_admin, require_admin_role
 from app.utils.audit import log_audit
 from app.models.audit_log import AuditAction, EntityType
+from app.utils.export_utils import generate_pdf, generate_excel, generate_csv
 
 router = APIRouter(prefix="/admin/survey", tags=["Admin - Survey"])
 
@@ -62,7 +63,7 @@ def list_service_types(
 def create_service_type(
     data: ServiceTypeCreate,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Create a new service type"""
     # Check if name already exists
@@ -96,7 +97,7 @@ def update_service_type(
     service_type_id: int,
     data: ServiceTypeUpdate,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Update a service type"""
     service_type = db.query(ServiceType).filter(ServiceType.id == service_type_id).first()
@@ -143,7 +144,7 @@ def update_service_type(
 def delete_service_type(
     service_type_id: int,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Delete a service type"""
     service_type = db.query(ServiceType).filter(ServiceType.id == service_type_id).first()
@@ -206,7 +207,7 @@ def list_questions(
 def create_question(
     data: SurveyQuestionCreate,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Create a new survey question"""
     # Get max order
@@ -241,7 +242,7 @@ def update_question(
     question_id: int,
     data: SurveyQuestionUpdate,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Update a survey question"""
     question = db.query(SurveyQuestion).filter(SurveyQuestion.id == question_id).first()
@@ -277,7 +278,7 @@ def update_question(
 def reorder_questions(
     data: ReorderQuestionsRequest,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Reorder survey questions"""
     for index, question_id in enumerate(data.question_ids):
@@ -304,7 +305,7 @@ def reorder_questions(
 def delete_question(
     question_id: int,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Delete a survey question"""
     question = db.query(SurveyQuestion).filter(SurveyQuestion.id == question_id).first()
@@ -569,39 +570,35 @@ def export_survey_responses(
     service_type_id: Optional[int] = Query(None),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
-    format: str = Query("csv", pattern="^(csv)$"),
+    format: str = Query("csv", pattern="^(csv|pdf|xlsx)$"),
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
-    """Export survey responses to CSV"""
+    """Export survey responses to CSV, PDF, or Excel"""
     query = db.query(SurveyResponse).join(ServiceType)
-    
+
     if service_type_id:
         query = query.filter(SurveyResponse.service_type_id == service_type_id)
     if start_date:
         query = query.filter(func.date(SurveyResponse.submitted_at) >= start_date)
     if end_date:
         query = query.filter(func.date(SurveyResponse.submitted_at) <= end_date)
-    
+
     responses = query.order_by(desc(SurveyResponse.submitted_at)).all()
-    
+
     # Get all questions for headers
     questions = db.query(SurveyQuestion).order_by(SurveyQuestion.order).all()
-    
-    # Create CSV
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    # Header row
+
+    # Prepare headers
     headers = ["ID", "Jenis Layanan", "Diisi Oleh", "Tanggal"]
     headers.extend([f"Q{q.id}: {q.question_text[:50]}" for q in questions])
     headers.append("Feedback")
-    writer.writerow(headers)
-    
-    # Data rows
+
+    # Prepare data as list of lists
+    data = []
     for response in responses:
         row = [
-            response.id,
+            str(response.id),
             response.service_type.name,
             response.filled_by.value,
             response.submitted_at.strftime("%Y-%m-%d %H:%M:%S")
@@ -610,10 +607,18 @@ def export_survey_responses(
         for q in questions:
             row.append(response.responses.get(str(q.id), ""))
         row.append(response.feedback or "")
-        writer.writerow(row)
-    
-    output.seek(0)
-    
+        data.append(row)
+
+    # Format subtitle with dates
+    title = "LAPORAN SURVEY KEPUASAN"
+    if start_date or end_date:
+        start_str = start_date.strftime("%d/%m/%Y") if start_date else "awal"
+        end_str = end_date.strftime("%d/%m/%Y") if end_date else "akhir"
+        subtitle = f"Periode: {start_str} - {end_str}"
+    else:
+        subtitle = "Periode: Semua Data"
+
+    # Log audit
     log_audit(
         db=db,
         action=AuditAction.EXPORT,
@@ -623,9 +628,41 @@ def export_survey_responses(
         performed_by=admin.username,
         details={"format": format, "count": len(responses)}
     )
-    
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=survey_responses.csv"}
-    )
+
+    # Generate and return based on format
+    if format == "csv":
+        csv_content = generate_csv(headers, data)
+        return StreamingResponse(
+            iter([csv_content]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=survey_responses.csv"}
+        )
+
+    elif format == "pdf":
+        pdf_bytes = generate_pdf(
+            title=title,
+            subtitle=subtitle,
+            headers=headers,
+            data=data,
+            logo_path=None,
+            orientation="landscape"
+        )
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=survey_responses.pdf"}
+        )
+
+    elif format == "xlsx":
+        excel_bytes = generate_excel(
+            title=title,
+            subtitle=subtitle,
+            headers=headers,
+            data=data,
+            sheet_name="Survey Responses"
+        )
+        return Response(
+            content=excel_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=survey_responses.xlsx"}
+        )

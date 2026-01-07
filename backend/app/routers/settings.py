@@ -17,7 +17,7 @@ from app.schemas.settings import (
     DailyScheduleBatchUpdate
 )
 from app.schemas.holiday import HolidayCreate, HolidayResponse, HolidayListResponse, HolidaySyncResponse
-from app.utils.auth import get_current_admin
+from app.utils.auth import get_current_admin, require_admin_role
 from app.utils.audit import log_audit
 from app.services.holiday_service import sync_holidays_from_api
 
@@ -42,7 +42,7 @@ def get_settings(
 def update_settings(
     data: WorkSettingsUpdate,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     settings = db.query(WorkSettings).first()
     if not settings:
@@ -81,7 +81,7 @@ def update_settings(
 async def upload_logo(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Upload village logo"""
     # Validate file type
@@ -149,7 +149,7 @@ async def upload_logo(
 @router.delete("/logo", status_code=status.HTTP_200_OK)
 def delete_logo(
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Delete village logo"""
     settings = db.query(WorkSettings).first()
@@ -210,7 +210,7 @@ def list_holidays(
 def create_holiday(
     data: HolidayCreate,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     existing = db.query(Holiday).filter(Holiday.date == data.date).first()
     if existing:
@@ -240,7 +240,7 @@ def create_holiday(
 def delete_holiday(
     holiday_id: int,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     holiday = db.query(Holiday).filter(Holiday.id == holiday_id).first()
     if not holiday:
@@ -272,7 +272,7 @@ def delete_holiday(
 async def sync_holidays(
     year: Optional[int] = Query(default=None, description="Tahun untuk sync, default tahun ini"),
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Sync hari libur dari dayoff-API eksternal."""
     try:
@@ -324,7 +324,7 @@ def list_excluded_holidays(
 def restore_holiday(
     holiday_id: int,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Restore a previously excluded holiday."""
     holiday = db.query(Holiday).filter(Holiday.id == holiday_id).first()
@@ -380,7 +380,7 @@ def list_schedules(
 def update_schedules(
     data: DailyScheduleBatchUpdate,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     """Update schedules (batch update)"""
     # Validate that we have exactly 7 schedules with unique day_of_week values

@@ -47,9 +47,11 @@ export function AdminDashboard() {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchDashboardData = async () => {
       try {
-        setIsLoading(true);
+        if (isMounted) setIsLoading(true);
 
         // Parallel data fetching for performance
         const [attendanceData, logsData, settings] = await Promise.all([
@@ -57,6 +59,8 @@ export function AdminDashboard() {
           api.admin.auditLogs.list({ page_size: 5 }),
           api.admin.settings.get()
         ]);
+
+        if (!isMounted) return;
 
         setStats({
           totalEmployees: attendanceData.summary.total_employees,
@@ -71,10 +75,12 @@ export function AdminDashboard() {
         setVillageName(settings.village_name);
         setLogoUrl(settings.logo_url);
 
-      } catch (error) {
+      } catch (error: unknown) {
+        // Ignore aborted requests (happens on unmount/navigation)
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ECONNABORTED') return;
         console.error('Failed to fetch dashboard data:', error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -82,7 +88,10 @@ export function AdminDashboard() {
 
     // Refresh data every 60s
     const interval = setInterval(fetchDashboardData, 60000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const statsCards = [

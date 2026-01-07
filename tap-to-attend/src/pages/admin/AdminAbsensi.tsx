@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/select';
 import { api, BackendAttendanceTodayItem, BackendAttendanceSummary } from '@/lib/api';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -53,6 +54,7 @@ const statusConfig: Record<AttendanceStatus, { color: string; badge: string; bg:
 };
 
 export function AdminAbsensi() {
+  const { isAdmin } = useAuth();
   const [records, setRecords] = useState<BackendAttendanceTodayItem[]>([]);
   const [summary, setSummary] = useState<BackendAttendanceSummary>({
     total_employees: 0,
@@ -253,14 +255,16 @@ export function AdminAbsensi() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openCorrection(record)}
-                          className="text-muted-foreground hover:text-primary"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openCorrection(record)}
+                            className="text-muted-foreground hover:text-primary"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -315,6 +319,8 @@ export function AdminAbsensi() {
                       size="sm"
                       onClick={() => openCorrection(record)}
                       className="text-muted-foreground hover:text-primary h-8 px-2"
+                      disabled={!isAdmin}
+                      style={{ display: isAdmin ? 'inline-flex' : 'none' }}
                     >
                       <Edit2 className="w-4 h-4 mr-1" />
                       <span className="text-xs">Koreksi</span>

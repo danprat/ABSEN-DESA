@@ -8,11 +8,11 @@ class Employee(Base):
     __tablename__ = "employees"
 
     id = Column(Integer, primary_key=True, index=True)
-    nip = Column(String(50), unique=True, nullable=True, index=True)
+    nik = Column(String(20), unique=True, nullable=True, index=True)  # NIK (16 digit)
     name = Column(String(100), nullable=False)
     position = Column(String(100), nullable=False)
     phone = Column(String(20), nullable=True)
-    email = Column(String(100), nullable=True)
+    address = Column(String(500), nullable=True)  # Alamat rumah
     photo_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, server_default=func.now())

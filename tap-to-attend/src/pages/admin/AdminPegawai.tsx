@@ -23,10 +23,12 @@ import {
 import { Label } from '@/components/ui/label';
 import { api, BackendEmployee, BackendFaceEmbedding } from '@/lib/api';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export function AdminPegawai() {
+  const { isAdmin } = useAuth();
   const [employees, setEmployees] = useState<BackendEmployee[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -36,9 +38,9 @@ export function AdminPegawai() {
   const [formData, setFormData] = useState({
     name: '',
     position: '',
-    nip: '',
+    nik: '',
     phone: '',
-    email: '',
+    address: '',
   });
 
   // Face enrollment states
@@ -111,24 +113,24 @@ export function AdminPegawai() {
         await api.employees.update(editingEmployee.id, {
           name: formData.name,
           position: formData.position,
-          nip: formData.nip || undefined,
+          nik: formData.nik || undefined,
           phone: formData.phone || undefined,
-          email: formData.email || undefined,
+          address: formData.address || undefined,
         });
         toast.success('Pegawai berhasil diperbarui');
       } else {
         await api.employees.create({
           name: formData.name,
           position: formData.position,
-          nip: formData.nip || undefined,
+          nik: formData.nik || undefined,
           phone: formData.phone || undefined,
-          email: formData.email || undefined,
+          address: formData.address || undefined,
         });
         toast.success('Pegawai berhasil ditambahkan');
       }
       setIsDialogOpen(false);
       setEditingEmployee(null);
-      setFormData({ name: '', position: '', nip: '', phone: '', email: '' });
+      setFormData({ name: '', position: '', nik: '', phone: '', address: '' });
       fetchEmployees();
     } catch (error) {
       console.error('Failed to save employee:', error);
@@ -143,9 +145,9 @@ export function AdminPegawai() {
     setFormData({
       name: employee.name,
       position: employee.position,
-      nip: employee.nip || '',
+      nik: employee.nik || '',
       phone: employee.phone || '',
-      email: employee.email || '',
+      address: employee.address || '',
     });
     setIsDialogOpen(true);
   };
@@ -323,12 +325,14 @@ export function AdminPegawai() {
           <p className="text-muted-foreground">Kelola data pegawai desa ({employees.length} pegawai)</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { setEditingEmployee(null); setFormData({ name: '', position: '', nip: '', phone: '', email: '' }); }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Tambah Pegawai
-            </Button>
-          </DialogTrigger>
+          {isAdmin && (
+            <DialogTrigger asChild>
+              <Button onClick={() => { setEditingEmployee(null); setFormData({ name: '', position: '', nik: '', phone: '', address: '' }); }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Tambah Pegawai
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
@@ -355,28 +359,31 @@ export function AdminPegawai() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="nip">NIP</Label>
+                <Label htmlFor="nik">NIK</Label>
                 <Input
-                  id="nip"
-                  value={formData.nip}
-                  onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
+                  id="nik"
+                  value={formData.nik}
+                  onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
+                  placeholder="16 digit NIK"
+                  maxLength={16}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">No. Telepon</Label>
+                <Label htmlFor="phone">No HP</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="08xxxxxxxxxx"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="address">Alamat Rumah</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Alamat lengkap"
                 />
               </div>
               <div className="flex justify-end gap-2">
@@ -415,7 +422,7 @@ export function AdminPegawai() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nama</TableHead>
-                <TableHead>NIP</TableHead>
+                <TableHead>NIK</TableHead>
                 <TableHead>Jabatan</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Foto Wajah</TableHead>
@@ -449,11 +456,11 @@ export function AdminPegawai() {
                         )}
                         <div>
                           <p className="font-medium">{employee.name}</p>
-                          <p className="text-xs text-muted-foreground">{employee.email || '-'}</p>
+                          <p className="text-xs text-muted-foreground">{employee.phone || '-'}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{employee.nip || '-'}</TableCell>
+                    <TableCell>{employee.nik || '-'}</TableCell>
                     <TableCell>{employee.position}</TableCell>
                     <TableCell>
                       <Badge variant={employee.is_active ? 'default' : 'secondary'}>
@@ -481,32 +488,36 @@ export function AdminPegawai() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => toggleStatus(employee)}
-                          title={employee.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                        >
-                          {employee.is_active ? (
-                            <UserX className="w-4 h-4" />
-                          ) : (
-                            <UserCheck className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(employee)}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(employee.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => toggleStatus(employee)}
+                              title={employee.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                            >
+                              {employee.is_active ? (
+                                <UserX className="w-4 h-4" />
+                              ) : (
+                                <UserCheck className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(employee)}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(employee.id)}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -554,12 +565,12 @@ export function AdminPegawai() {
 
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground block text-xs">NIP</span>
-                    <span>{employee.nip || '-'}</span>
+                    <span className="text-muted-foreground block text-xs">NIK</span>
+                    <span>{employee.nik || '-'}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-xs">Email</span>
-                    <span className="truncate block">{employee.email || '-'}</span>
+                    <span className="text-muted-foreground block text-xs">No HP</span>
+                    <span className="truncate block">{employee.phone || '-'}</span>
                   </div>
                 </div>
 
@@ -579,32 +590,34 @@ export function AdminPegawai() {
                     Foto Wajah
                   </Button>
 
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => toggleStatus(employee)}
-                    >
-                      {employee.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleEdit(employee)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDelete(employee.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => toggleStatus(employee)}
+                      >
+                        {employee.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(employee)}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleDelete(employee.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

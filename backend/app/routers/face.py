@@ -7,7 +7,7 @@ from app.models.admin import Admin
 from app.models.employee import Employee
 from app.models.face_embedding import FaceEmbedding
 from app.schemas.face import FaceEmbeddingResponse, FaceUploadResponse
-from app.utils.auth import get_current_admin
+from app.utils.auth import get_current_admin, require_admin_role
 from app.services.face_recognition import face_recognition_service
 
 router = APIRouter(prefix="/employees", tags=["Face Enrollment"])
@@ -20,7 +20,7 @@ async def upload_face(
     employee_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     employee = db.query(Employee).filter(Employee.id == employee_id).first()
     if not employee:
@@ -105,7 +105,7 @@ def delete_face(
     employee_id: int,
     face_id: int,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
+    admin: Admin = Depends(require_admin_role)
 ):
     face = db.query(FaceEmbedding).filter(
         FaceEmbedding.id == face_id,

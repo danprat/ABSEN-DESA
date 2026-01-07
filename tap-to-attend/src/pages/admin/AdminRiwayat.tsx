@@ -82,6 +82,7 @@ export function AdminRiwayat() {
   const [employees, setEmployees] = useState<BackendEmployee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf' | 'xlsx'>('pdf');
 
   // Detail modal state
   const [selectedEmployeeDetail, setSelectedEmployeeDetail] = useState<BackendMonthlyReportItem | null>(null);
@@ -157,16 +158,18 @@ export function AdminRiwayat() {
       const blob = await api.admin.reports.export({
         month: parseInt(selectedMonth),
         year: parseInt(selectedYear),
+        format: exportFormat,
       });
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `rekap-absensi-${months.find((m) => m.value === selectedMonth)?.label}-${selectedYear}.csv`;
+      const ext = exportFormat;
+      a.download = `rekap-absensi-${months.find((m) => m.value === selectedMonth)?.label}-${selectedYear}.${ext}`;
       a.click();
       URL.revokeObjectURL(url);
 
-      toast.success('File CSV berhasil diunduh');
+      toast.success(`File ${ext.toUpperCase()} berhasil diunduh`);
     } catch (error) {
       console.error('Failed to export:', error);
       toast.error('Gagal mengekspor data');
@@ -187,7 +190,7 @@ export function AdminRiwayat() {
       const query = searchQuery.toLowerCase();
       data = data.filter(r =>
         r.employee_name.toLowerCase().includes(query) ||
-        (r.employee_nip && r.employee_nip.toLowerCase().includes(query)) ||
+        (r.employee_nik && r.employee_nik.toLowerCase().includes(query)) ||
         r.employee_position.toLowerCase().includes(query)
       );
     }
@@ -250,14 +253,26 @@ export function AdminRiwayat() {
           <h1 className="text-2xl font-bold text-foreground">Riwayat & Laporan</h1>
           <p className="text-muted-foreground">Rekap absensi bulanan pegawai</p>
         </div>
-        <Button onClick={handleExport} disabled={isExporting || filteredData.length === 0}>
-          {isExporting ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          ) : (
-            <Download className="w-4 h-4 mr-2" />
-          )}
-          Ekspor CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as 'csv' | 'pdf' | 'xlsx')}>
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pdf">PDF</SelectItem>
+              <SelectItem value="xlsx">Excel</SelectItem>
+              <SelectItem value="csv">CSV</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleExport} disabled={isExporting || filteredData.length === 0}>
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            Ekspor
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -484,7 +499,7 @@ export function AdminRiwayat() {
                             <div>
                               <p className="font-medium">{recap.employee_name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {recap.employee_nip || '-'} · {recap.employee_position}
+                                {recap.employee_nik || '-'} · {recap.employee_position}
                               </p>
                             </div>
                           </TableCell>
@@ -564,7 +579,7 @@ export function AdminRiwayat() {
                         <div>
                           <p className="font-medium">{recap.employee_name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {recap.employee_nip || '-'} · {recap.employee_position}
+                            {recap.employee_nik || '-'} · {recap.employee_position}
                           </p>
                         </div>
                         <span

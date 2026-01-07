@@ -36,11 +36,11 @@ def login(
         )
     
     access_token = create_access_token(
-        data={"sub": admin.username, "admin_id": admin.id},
+        data={"sub": admin.username, "admin_id": admin.id, "role": admin.role},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    
-    return TokenResponse(access_token=access_token)
+
+    return TokenResponse(access_token=access_token, role=admin.role)
 
 
 @router.post("/setup", response_model=dict)

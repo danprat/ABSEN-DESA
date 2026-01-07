@@ -10,11 +10,13 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    role: str = "admin"
 
 
 class TokenData(BaseModel):
     username: Optional[str] = None
     admin_id: Optional[int] = None
+    role: Optional[str] = None
 
 
 class ChangePasswordRequest(BaseModel):

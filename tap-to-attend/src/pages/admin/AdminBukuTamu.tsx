@@ -24,14 +24,24 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { BackendGuestBookEntry } from '@/types/guestbook';
+import { useAuth } from '@/hooks/useAuth';
 
 export function AdminBukuTamu() {
+  const { isAdmin } = useAuth();
   const [entries, setEntries] = useState<BackendGuestBookEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf' | 'xlsx'>('pdf');
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -79,19 +89,20 @@ export function AdminBukuTamu() {
       const blob = await api.admin.guestBook.export({
         start_date: startDate,
         end_date: endDate,
+        format: exportFormat,
       });
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `buku-tamu_${startDate}_${endDate}.csv`;
+      link.download = `buku-tamu_${startDate}_${endDate}.${exportFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      toast.success('Berhasil export data buku tamu');
+
+      toast.success(`Berhasil export data buku tamu (${exportFormat.toUpperCase()})`);
     } catch (error) {
       console.error('Failed to export:', error);
       toast.error('Gagal export data');
@@ -206,14 +217,24 @@ export function AdminBukuTamu() {
                 </div>
               </div>
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
+              <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as 'csv' | 'pdf' | 'xlsx')}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="xlsx">Excel</SelectItem>
+                  <SelectItem value="csv">CSV</SelectItem>
+                </SelectContent>
+              </Select>
               <Button onClick={handleExport} disabled={isExporting} variant="outline">
                 {isExporting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <Download className="w-4 h-4 mr-2" />
                 )}
-                Export CSV
+                Export
               </Button>
             </div>
           </div>
@@ -255,30 +276,32 @@ export function AdminBukuTamu() {
                         </TableCell>
                         <TableCell>{formatDate(entry.visit_date)}</TableCell>
                         <TableCell>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Hapus Data Tamu?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Data tamu "{entry.name}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(entry.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Hapus
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          {isAdmin && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Hapus Data Tamu?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Data tamu "{entry.name}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(entry.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Hapus
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

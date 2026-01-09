@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 from app.database import get_db
 from app.models.admin import Admin
@@ -129,23 +129,29 @@ def get_today_attendance_admin(
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
+    """Get today's attendance for admin with eager loading to avoid N+1 queries."""
     today = date.today()
-    
+
     total_employees = db.query(Employee).filter(Employee.is_active == True).count()
-    
-    attendances = db.query(AttendanceLog).join(Employee).filter(
-        and_(
-            AttendanceLog.date == today,
-            Employee.is_active == True
-        )
-    ).all()
-    
+
+    # Use joinedload to eagerly load employee data (avoid N+1 query)
+    attendances = db.query(AttendanceLog)\
+        .options(joinedload(AttendanceLog.employee))\
+        .join(Employee)\
+        .filter(
+            and_(
+                AttendanceLog.date == today,
+                Employee.is_active == True
+            )
+        )\
+        .all()
+
     present = sum(1 for a in attendances if a.status == AttendanceStatus.HADIR)
     late = sum(1 for a in attendances if a.status == AttendanceStatus.TERLAMBAT)
     absent = sum(1 for a in attendances if a.status == AttendanceStatus.ALFA)
     on_leave = sum(1 for a in attendances if a.status == AttendanceStatus.IZIN)
     sick = sum(1 for a in attendances if a.status == AttendanceStatus.SAKIT)
-    
+
     items = []
     for att in attendances:
         items.append(AttendanceTodayItem(
@@ -158,7 +164,7 @@ def get_today_attendance_admin(
             check_out_at=att.check_out_at,
             status=att.status
         ))
-    
+
     return AttendanceTodayAdminResponse(
         items=items,
         summary=AttendanceSummary(

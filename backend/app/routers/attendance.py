@@ -1,7 +1,7 @@
 import base64
-from datetime import date
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 from app.database import get_db
 from app.models.attendance import AttendanceLog
@@ -9,6 +9,10 @@ from app.models.employee import Employee
 from app.schemas.attendance import AttendanceRecognizeResponse, AttendanceTodayItem, AttendanceTodayResponse
 from app.services.face_recognition import face_recognition_service
 from app.services.attendance import attendance_service
+from app.cache import get_cache, set_cache, invalidate_cache
+from app.config import get_settings
+
+config = get_settings()
 
 router = APIRouter(prefix="/attendance", tags=["Attendance - Tablet"])
 
@@ -137,6 +141,10 @@ def confirm_attendance(
             detail=message
         )
 
+    # Invalidate today's attendance cache (new attendance added)
+    today = date.today()
+    invalidate_cache(f"attendance:today:{today}")
+
     # Get updated attendance status after processing
     attendance_status = attendance_service.get_attendance_status(attendance)
 
@@ -161,15 +169,34 @@ def confirm_attendance(
 
 @router.get("/today", response_model=AttendanceTodayResponse)
 def get_today_attendance(db: Session = Depends(get_db)):
+    """
+    Get today's attendance list with caching and eager loading.
+
+    - Cached for 30 seconds (frequent polling from kiosk)
+    - Uses joinedload to avoid N+1 queries
+    - Cache invalidated on new attendance
+    """
     today = date.today()
-    
-    attendances = db.query(AttendanceLog).join(Employee).filter(
-        and_(
-            AttendanceLog.date == today,
-            Employee.is_active == True
-        )
-    ).order_by(AttendanceLog.check_in_at.desc()).all()
-    
+    cache_key = f"attendance:today:{today}"
+
+    # Try cache first
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        return AttendanceTodayResponse(**cached_data)
+
+    # Cache miss - fetch with eager loading to avoid N+1
+    attendances = db.query(AttendanceLog)\
+        .options(joinedload(AttendanceLog.employee))\
+        .join(Employee)\
+        .filter(
+            and_(
+                AttendanceLog.date == today,
+                Employee.is_active == True
+            )
+        )\
+        .order_by(AttendanceLog.check_in_at.desc())\
+        .all()
+
     items = []
     for att in attendances:
         items.append(AttendanceTodayItem(
@@ -182,5 +209,13 @@ def get_today_attendance(db: Session = Depends(get_db)):
             check_out_at=att.check_out_at,
             status=att.status
         ))
-    
-    return AttendanceTodayResponse(items=items, total=len(items))
+
+    response_data = {
+        "items": [item.model_dump() for item in items],
+        "total": len(items)
+    }
+
+    # Cache for 30 seconds (data changes frequently)
+    set_cache(cache_key, response_data, config.CACHE_TTL_ATTENDANCE_TODAY)
+
+    return AttendanceTodayResponse(**response_data)

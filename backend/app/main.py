@@ -58,7 +58,23 @@ app.include_router(admin_management.router, prefix=API_PREFIX)
 
 @app.on_event("startup")
 def on_startup():
+    """
+    Startup event handler.
+
+    1. Create database tables if not exist
+    2. Warm-up face embeddings cache (avoid cold start delay)
+    """
+    # Create tables
     Base.metadata.create_all(bind=engine)
+
+    # Warm-up face embeddings cache
+    try:
+        from app.services.face_recognition import face_recognition_service
+        face_recognition_service.refresh_embedding_cache()
+        print("✅ Face embeddings cache warmed up successfully")
+    except Exception as e:
+        print(f"⚠️  Warning: Could not warm up face cache: {e}")
+        print("   Face recognition will work, but first request may be slower")
 
 
 @app.get("/health")

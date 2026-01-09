@@ -43,7 +43,6 @@ def compute_monthly_statistics(db: Session, month: int, year: int) -> list[Month
         Employee.id,
         Employee.name,
         Employee.nik,
-        Employee.nip,
         Employee.position,
         func.count(AttendanceLog.id).label('total_days'),
         func.sum(
@@ -77,7 +76,6 @@ def compute_monthly_statistics(db: Session, month: int, year: int) -> list[Month
         Employee.id,
         Employee.name,
         Employee.nik,
-        Employee.nip,
         Employee.position
     ).all()
 

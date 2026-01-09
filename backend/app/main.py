@@ -70,8 +70,14 @@ def on_startup():
     # Warm-up face embeddings cache
     try:
         from app.services.face_recognition import face_recognition_service
-        face_recognition_service.refresh_embedding_cache()
-        print("✅ Face embeddings cache warmed up successfully")
+        from app.database import SessionLocal
+
+        db = SessionLocal()
+        try:
+            count = face_recognition_service.refresh_embedding_cache(db)
+            print(f"✅ Face embeddings cache warmed up successfully ({count} embeddings loaded)")
+        finally:
+            db.close()
     except Exception as e:
         print(f"⚠️  Warning: Could not warm up face cache: {e}")
         print("   Face recognition will work, but first request may be slower")

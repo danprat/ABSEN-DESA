@@ -5,6 +5,7 @@ from app.models.admin import Admin
 from app.models.audit_log import AuditAction, EntityType
 from app.schemas.admin import AdminCreate, AdminUpdate, AdminResponse, AdminListResponse
 from app.utils.auth import get_current_admin, require_admin_role, get_password_hash
+from app.utils.password_policy import validate_password_strength
 from app.utils.audit import log_audit
 
 router = APIRouter(prefix="/admin/admins", tags=["Admin Management"])
@@ -34,6 +35,9 @@ def create_admin(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username sudah digunakan"
         )
+
+    # Validate password strength
+    validate_password_strength(data.password)
 
     # Create new admin
     new_admin = Admin(

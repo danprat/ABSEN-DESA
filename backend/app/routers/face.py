@@ -8,6 +8,7 @@ from app.models.employee import Employee
 from app.models.face_embedding import FaceEmbedding
 from app.schemas.face import FaceEmbeddingResponse, FaceUploadResponse
 from app.utils.auth import get_current_admin, require_admin_role
+from app.utils.file_validation import validate_image_upload
 from app.services.face_recognition import face_recognition_service
 
 router = APIRouter(prefix="/employees", tags=["Face Enrollment"])
@@ -28,41 +29,40 @@ async def upload_face(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Pegawai tidak ditemukan"
         )
-    
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File harus berupa gambar"
-        )
-    
-    image_data = await file.read()
-    
+
+    # Validate image file (size limit, magic bytes, content-type)
+    # Only allow JPEG and PNG for face images
+    image_data = await validate_image_upload(
+        file,
+        allowed_types=["image/jpeg", "image/jpg", "image/png"]
+    )
+
     if not face_recognition_service.detect_face(image_data):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Wajah tidak terdeteksi dalam gambar"
         )
-    
+
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    
+
     ext = file.filename.split(".")[-1] if file.filename else "jpg"
     filename = f"{uuid.uuid4()}.{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
-    
+
     with open(filepath, "wb") as f:
         f.write(image_data)
-    
+
     # Use CNN model and num_jitters=5 for registration (more accurate embeddings)
     embedding = face_recognition_service.generate_embedding(
-        image_data, 
+        image_data,
         use_cnn=True,      # Better face detection for registration
         num_jitters=5      # More stable embeddings
     )
-    
+
     existing_count = db.query(FaceEmbedding).filter(
         FaceEmbedding.employee_id == employee_id
     ).count()
-    
+
     face_embedding = FaceEmbedding(
         employee_id=employee_id,
         embedding=embedding,
@@ -72,10 +72,10 @@ async def upload_face(
     db.add(face_embedding)
     db.commit()
     db.refresh(face_embedding)
-    
+
     # Invalidate cache after adding new face
     face_recognition_service.invalidate_cache()
-    
+
     return FaceUploadResponse(
         id=face_embedding.id,
         photo_url=face_embedding.photo_url,

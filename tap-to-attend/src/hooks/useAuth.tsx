@@ -1,15 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, authToken, LoginRequest } from '@/lib/api';
+import { api, LoginRequest } from '@/lib/api';
 import { toast } from 'sonner';
-
-const ROLE_KEY = 'auth_role';
-
-export const authRole = {
-  get: (): string | null => localStorage.getItem(ROLE_KEY),
-  set: (role: string): void => localStorage.setItem(ROLE_KEY, role),
-  remove: (): void => localStorage.removeItem(ROLE_KEY),
-};
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -32,14 +24,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [role, setRole] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Check authentication on mount
+  // Check authentication on mount by calling /me or similar endpoint
   useEffect(() => {
-    const checkAuth = () => {
-      const token = authToken.get();
-      const savedRole = authRole.get();
-      setIsAuthenticated(!!token);
-      setRole(savedRole);
-      setIsLoading(false);
+    const checkAuth = async () => {
+      try {
+        // Try to get current user info - if cookie exists, this will work
+        const response = await api.auth.getCurrentUser();
+        setIsAuthenticated(true);
+        setRole(response.role);
+      } catch (error) {
+        // If 401, cookie doesn't exist or is invalid
+        setIsAuthenticated(false);
+        setRole(null);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     checkAuth();
@@ -52,9 +51,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoading(true);
       const response = await api.auth.login(credentials);
 
-      // Store token and role
-      authToken.set(response.access_token);
-      authRole.set(response.role);
+      // Cookie is set by backend automatically
+      // Just update local state with role from response
       setIsAuthenticated(true);
       setRole(response.role);
 
@@ -80,9 +78,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const logout = (): void => {
-    authToken.remove();
-    authRole.remove();
+  const logout = async (): Promise<void> => {
+    try {
+      // Call backend logout endpoint to clear cookie and revoke token
+      await api.auth.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Continue with logout even if API call fails
+    }
+
+    // Clear local state
     setIsAuthenticated(false);
     setRole(null);
 

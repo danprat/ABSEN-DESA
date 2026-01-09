@@ -29,6 +29,8 @@ dlib>=19.24.0
 # Utilities
 python-dateutil==2.8.2
 httpx
+slowapi==0.1.9
+python-magic==0.4.27
 
 # Caching
 redis==5.0.1

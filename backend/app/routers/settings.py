@@ -19,6 +19,7 @@ from app.schemas.settings import (
 from app.schemas.holiday import HolidayCreate, HolidayResponse, HolidayListResponse, HolidaySyncResponse
 from app.utils.auth import get_current_admin, require_admin_role
 from app.utils.audit import log_audit
+from app.utils.file_validation import validate_image_upload
 from app.services.holiday_service import sync_holidays_from_api
 from app.cache import invalidate_cache
 
@@ -88,16 +89,8 @@ async def upload_logo(
     admin: Admin = Depends(require_admin_role)
 ):
     """Upload village logo"""
-    # Validate file type
-    allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File harus berupa gambar (jpg, png, atau gif)"
-        )
-
-    # Read file data
-    image_data = await file.read()
+    # Validate image file (size limit, magic bytes, content-type)
+    image_data = await validate_image_upload(file)
 
     # Create uploads/logos directory if not exists
     upload_dir = "uploads/logos"
@@ -203,23 +196,12 @@ async def upload_background(
     admin: Admin = Depends(require_admin_role)
 ):
     """Upload background image for landing pages"""
-    # Validate file type
-    allowed_types = ["image/jpeg", "image/jpg", "image/png"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File harus berupa gambar (jpg atau png)"
-        )
-
-    # Read file data
-    image_data = await file.read()
-
-    # Check file size (max 5MB)
-    if len(image_data) > 5 * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ukuran file maksimal 5MB"
-        )
+    # Validate image file (size limit, magic bytes, content-type)
+    # Only allow JPG and PNG for background images
+    image_data = await validate_image_upload(
+        file,
+        allowed_types=["image/jpeg", "image/jpg", "image/png"]
+    )
 
     # Create uploads/backgrounds directory if not exists
     upload_dir = "uploads/backgrounds"

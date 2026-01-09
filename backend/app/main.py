@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.config import get_settings
 from app.database import engine, Base
@@ -12,14 +15,22 @@ from app.routers import (
     guestbook, survey, admin_guestbook, admin_survey,
     admin_management
 )
+from app.utils import secure_static
 
 settings_config = get_settings()
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="Sistem Absensi Desa",
     description="Backend API untuk sistem absensi pegawai desa berbasis face recognition",
     version="1.0.0"
 )
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,9 +44,6 @@ app.add_middleware(
 os.makedirs("uploads/faces", exist_ok=True)
 os.makedirs("uploads/logos", exist_ok=True)
 os.makedirs("uploads/backgrounds", exist_ok=True)
-
-# Mount uploads folder (untuk foto wajah, logo, background)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # API Routes
 API_PREFIX = "/api/v1"
@@ -54,6 +62,9 @@ app.include_router(survey.router, prefix=API_PREFIX)
 app.include_router(admin_guestbook.router, prefix=API_PREFIX)
 app.include_router(admin_survey.router, prefix=API_PREFIX)
 app.include_router(admin_management.router, prefix=API_PREFIX)
+
+# Secure uploads router (with authentication where needed)
+app.include_router(secure_static.router, prefix=API_PREFIX)
 
 
 @app.on_event("startup")
@@ -110,8 +121,9 @@ if os.path.exists(FRONTEND_PATH):
         Serve frontend untuk semua route yang tidak match dengan API.
         Ini untuk support client-side routing (React Router).
         """
-        # Skip jika request ke API atau uploads (sudah di-handle di atas)
-        if full_path.startswith("api/") or full_path.startswith("uploads/"):
+        # Skip jika request ke API (sudah di-handle di atas)
+        # Note: /uploads sekarang dilindungi dengan auth di API router
+        if full_path.startswith("api/"):
             # Biarkan FastAPI return 404
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Not Found")

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -8,32 +8,18 @@ const apiClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 30000,
+  withCredentials: true,  // Enable sending cookies
 });
 
-const TOKEN_KEY = 'auth_token';
-
-export const authToken = {
-  get: (): string | null => localStorage.getItem(TOKEN_KEY),
-  set: (token: string): void => localStorage.setItem(TOKEN_KEY, token),
-  remove: (): void => localStorage.removeItem(TOKEN_KEY),
-};
-
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = authToken.get();
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error: AxiosError) => Promise.reject(error)
-);
+// Remove localStorage token management - now using httpOnly cookies
+// Token is automatically sent via cookies by browser
 
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      authToken.remove();
+      // Cookie will be cleared by backend on logout
+      // Just redirect to login
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
@@ -296,12 +282,14 @@ export const api = {
       return response.data;
     },
 
-    logout: (): void => {
-      authToken.remove();
+    logout: async (): Promise<{ message: string }> => {
+      const response = await apiClient.post<{ message: string }>('/api/v1/auth/logout');
+      return response.data;
     },
 
-    isAuthenticated: (): boolean => {
-      return authToken.get() !== null;
+    getCurrentUser: async (): Promise<{ username: string; role: string; name: string }> => {
+      const response = await apiClient.get<{ username: string; role: string; name: string }>('/api/v1/auth/me');
+      return response.data;
     },
 
     changePassword: async (data: { current_password: string; new_password: string; confirm_password: string }): Promise<{ message: string }> => {

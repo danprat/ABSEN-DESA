@@ -7,6 +7,10 @@ from typing import Optional
 from app.database import get_db
 from app.models.work_settings import WorkSettings
 from app.models.daily_schedule import DailyWorkSchedule
+from app.cache import get_cache, set_cache
+from app.config import get_settings
+
+config = get_settings()
 
 
 router = APIRouter(prefix="/public", tags=["Public"])
@@ -29,7 +33,22 @@ class PublicSettingsResponse(BaseModel):
 
 @router.get("/settings", response_model=PublicSettingsResponse)
 def get_public_settings(db: Session = Depends(get_db)):
-    """Get public settings without authentication - for attendance page."""
+    """
+    Get public settings without authentication - for attendance page.
+
+    This endpoint is cached for 1 hour because settings rarely change.
+    Cache is per-day for schedule (since schedule changes daily).
+    """
+    # Create cache key with today's date (since schedule is day-specific)
+    today_date = datetime.now().date()
+    cache_key = f"public:settings:{today_date}"
+
+    # Try to get from cache first
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        return PublicSettingsResponse(**cached_data)
+
+    # Cache miss - fetch from database
     # Get work settings
     settings = db.query(WorkSettings).first()
     if not settings:
@@ -63,10 +82,15 @@ def get_public_settings(db: Session = Depends(get_db)):
             check_out_start=settings.check_out_start.strftime("%H:%M")
         )
 
-    return PublicSettingsResponse(
-        village_name=settings.village_name,
-        officer_name=settings.officer_name,
-        logo_url=settings.logo_url,
-        background_url=settings.background_url,
-        today_schedule=today_schedule
-    )
+    response_data = {
+        "village_name": settings.village_name,
+        "officer_name": settings.officer_name,
+        "logo_url": settings.logo_url,
+        "background_url": settings.background_url,
+        "today_schedule": today_schedule.model_dump() if today_schedule else None
+    }
+
+    # Cache for 1 hour (settings change rarely)
+    set_cache(cache_key, response_data, config.CACHE_TTL_SETTINGS)
+
+    return PublicSettingsResponse(**response_data)

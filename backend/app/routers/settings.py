@@ -20,6 +20,7 @@ from app.schemas.holiday import HolidayCreate, HolidayResponse, HolidayListRespo
 from app.utils.auth import get_current_admin, require_admin_role
 from app.utils.audit import log_audit
 from app.services.holiday_service import sync_holidays_from_api
+from app.cache import invalidate_cache
 
 router = APIRouter(prefix="/admin/settings", tags=["Settings"])
 
@@ -55,6 +56,9 @@ def update_settings(
 
     db.commit()
     db.refresh(settings)
+
+    # Invalidate public settings cache
+    invalidate_cache("public:settings:*")
 
     # Convert time objects to strings for JSON serialization in audit log
     audit_details = {}
@@ -128,6 +132,9 @@ async def upload_logo(
     settings.logo_url = logo_url
     db.commit()
     db.refresh(settings)
+
+    # Invalidate public settings cache
+    invalidate_cache("public:settings:*")
 
     # Log audit
     log_audit(

@@ -18,9 +18,12 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Cookie will be cleared by backend on logout
-      // Just redirect to login
-      if (!window.location.pathname.includes('/login')) {
+      // Only redirect if NOT checking auth status (/me endpoint)
+      // and NOT already on login page
+      const isCheckingAuth = error.config?.url?.includes('/auth/me');
+      const isLoginPage = window.location.pathname.includes('/login');
+
+      if (!isCheckingAuth && !isLoginPage) {
         window.location.href = '/login';
       }
     }

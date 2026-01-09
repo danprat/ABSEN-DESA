@@ -45,6 +45,11 @@ os.makedirs("uploads/faces", exist_ok=True)
 os.makedirs("uploads/logos", exist_ok=True)
 os.makedirs("uploads/backgrounds", exist_ok=True)
 
+# Mount public uploads (logos and backgrounds for landing page)
+# These need to be public for unauthenticated users to see them
+app.mount("/uploads/logos", StaticFiles(directory="uploads/logos"), name="logos")
+app.mount("/uploads/backgrounds", StaticFiles(directory="uploads/backgrounds"), name="backgrounds")
+
 # API Routes
 API_PREFIX = "/api/v1"
 
